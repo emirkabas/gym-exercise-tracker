@@ -121,7 +121,12 @@ INSERT INTO exercises (name, description, muscle_group_id, equipment, difficulty
      ('CHEST PRESS', 'Chest Press with a Machine', 
      (SELECT id FROM muscle_groups WHERE name = 'Chest'), 
      'Chest Press', 'intermediate', 'Perform chess press using the Technogym machine', 
-     'https://drive.google.com/file/d/1om00-i0VoP7UKDHOc27ZqzaaW0CYzgpV/view', NULL)
+     'https://drive.google.com/file/d/1om00-i0VoP7UKDHOc27ZqzaaW0CYzgpV/view', NULL),
+
+     ('LYING BICEP CURL', 'Biceps Curl with a dumbbell while sitting', 
+     (SELECT id FROM muscle_groups WHERE name = 'Biceps'), 
+     'NULL', 'beginenr', 'Biceps Curl with a dumbbell while sitting', 
+     'https://drive.google.com/file/d/1Ka4olDCSCQGj4QdE1tP23pajczWS09M7/view', NULL),
 ON CONFLICT DO NOTHING;
 
 -- Create indexes for better performance

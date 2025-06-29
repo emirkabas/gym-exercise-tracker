@@ -455,6 +455,101 @@ app.get('/api/my-workouts/check/:programId', async (req, res) => {
   }
 });
 
+// Save workout days for a user workout
+app.post('/api/my-workouts/:id/workout-days', async (req, res) => {
+  const { id } = req.params;
+  const { workout_days } = req.body;
+  const userId = 'default_user'; // For now, using a default user ID
+
+  if (!workout_days || !Array.isArray(workout_days)) {
+    return res.status(400).json({ error: 'Workout days array is required' });
+  }
+
+  try {
+    // First, verify this user workout belongs to the user
+    const { data: userWorkout, error: checkError } = await supabase
+      .from('user_workouts')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (checkError || !userWorkout) {
+      return res.status(404).json({ error: 'User workout not found' });
+    }
+
+    // For now, we'll store workout days as a JSON field in the user_workouts table
+    // In a production app, you might want a separate table for this
+    const { error: updateError } = await supabase
+      .from('user_workouts')
+      .update({ 
+        workout_days: workout_days,
+        last_updated: new Date().toISOString()
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    res.json({ message: 'Workout days saved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get workout days for a user workout
+app.get('/api/my-workouts/:id/workout-days', async (req, res) => {
+  const { id } = req.params;
+  const userId = 'default_user'; // For now, using a default user ID
+
+  try {
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .select('workout_days')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ workout_days: data.workout_days || [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get all workout days for a user (for calendar view)
+app.get('/api/my-workouts/workout-days', async (req, res) => {
+  const userId = 'default_user'; // For now, using a default user ID
+
+  try {
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .select('workout_days')
+      .eq('user_id', userId)
+      .not('workout_days', 'is', null);
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    // Combine all workout days from all user workouts
+    const allWorkoutDays = new Set();
+    data.forEach(item => {
+      if (item.workout_days && Array.isArray(item.workout_days)) {
+        item.workout_days.forEach(day => allWorkoutDays.add(day));
+      }
+    });
+
+    res.json({ workout_days: Array.from(allWorkoutDays) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Serve the main HTML file
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

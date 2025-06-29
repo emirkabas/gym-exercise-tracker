@@ -59,6 +59,8 @@ CREATE TABLE IF NOT EXISTS user_workouts (
     id BIGSERIAL PRIMARY KEY,
     workout_program_id BIGINT REFERENCES workout_programs(id) ON DELETE CASCADE,
     user_id TEXT, -- For future user authentication
+    workout_days JSONB, -- Array of workout dates
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(workout_program_id, user_id)
 );

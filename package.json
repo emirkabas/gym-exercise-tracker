@@ -1,0 +1,32 @@
+{
+  "name": "gym-exercise-tracker",
+  "version": "1.0.0",
+  "description": "A website to compile different gym exercises and create efficient gym programs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon --ignore 'public/*' --ignore 'uploads/*' server.js",
+    "dev:clean": "pkill -f 'node server.js' && nodemon --ignore 'public/*' --ignore 'uploads/*' server.js",
+    "init-db": "node scripts/init-database.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.50.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "multer": "^2.0.1",
+    "sqlite3": "^5.1.6",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": [
+    "gym",
+    "exercises",
+    "workout",
+    "fitness"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -550,6 +550,110 @@ app.get('/api/my-workouts/workout-days', async (req, res) => {
   }
 });
 
+// Get single user workout by ID
+app.get('/api/my-workouts/:id', async (req, res) => {
+  const { id } = req.params;
+  const userId = 'default_user'; // For now, using a default user ID
+
+  try {
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .select(`
+        *,
+        workout_programs (
+          id,
+          name,
+          description,
+          difficulty_level,
+          duration_weeks
+        )
+      `)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') { // Not found
+        return res.status(404).json({ error: 'User workout not found' });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save workout tracking data
+app.post('/api/workout-tracking', async (req, res) => {
+  const { date, userWorkoutId, exercises } = req.body;
+  const userId = 'default_user'; // For now, using a default user ID
+
+  if (!date || !userWorkoutId || !exercises) {
+    return res.status(400).json({ error: 'Date, user workout ID, and exercises are required' });
+  }
+
+  try {
+    // First, verify this user workout belongs to the user
+    const { data: userWorkout, error: checkError } = await supabase
+      .from('user_workouts')
+      .select('id')
+      .eq('id', userWorkoutId)
+      .eq('user_id', userId)
+      .single();
+
+    if (checkError || !userWorkout) {
+      return res.status(404).json({ error: 'User workout not found' });
+    }
+
+    // For now, we'll store workout tracking data as JSON in the user_workouts table
+    // In a production app, you might want a separate table for this
+    const { error: updateError } = await supabase
+      .from('user_workouts')
+      .update({ 
+        workout_tracking: {
+          ...userWorkout.workout_tracking,
+          [date]: exercises
+        },
+        last_updated: new Date().toISOString()
+      })
+      .eq('id', userWorkoutId);
+
+    if (updateError) {
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    res.json({ message: 'Workout tracking data saved successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get workout tracking data for a specific date
+app.get('/api/workout-tracking/:userWorkoutId/:date', async (req, res) => {
+  const { userWorkoutId, date } = req.params;
+  const userId = 'default_user'; // For now, using a default user ID
+
+  try {
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .select('workout_tracking')
+      .eq('id', userWorkoutId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+
+    const trackingData = data.workout_tracking && data.workout_tracking[date] ? data.workout_tracking[date] : null;
+    res.json({ tracking_data: trackingData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Serve the main HTML file
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

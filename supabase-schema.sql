@@ -54,6 +54,15 @@ CREATE TABLE IF NOT EXISTS workout_program_exercises (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create user_workouts table to track which programs users have added
+CREATE TABLE IF NOT EXISTS user_workouts (
+    id BIGSERIAL PRIMARY KEY,
+    workout_program_id BIGINT REFERENCES workout_programs(id) ON DELETE CASCADE,
+    user_id TEXT, -- For future user authentication
+    added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(workout_program_id, user_id)
+);
+
 -- Insert sample muscle groups
 INSERT INTO muscle_groups (name, description) VALUES
     ('Chest', 'Pectoralis major and minor muscles'),
@@ -125,8 +134,8 @@ INSERT INTO exercises (name, description, muscle_group_id, equipment, difficulty
 
      ('LYING BICEP CURL', 'Biceps Curl with a dumbbell while sitting', 
      (SELECT id FROM muscle_groups WHERE name = 'Biceps'), 
-     'NULL', 'beginenr', 'Biceps Curl with a dumbbell while sitting', 
-     'https://drive.google.com/file/d/1Ka4olDCSCQGj4QdE1tP23pajczWS09M7/view', NULL),
+     'Dumbbell', 'beginner', 'Biceps Curl with a dumbbell while sitting', 
+     'https://drive.google.com/file/d/1Ka4olDCSCQGj4QdE1tP23pajczWS09M7/view', NULL)
 ON CONFLICT DO NOTHING;
 
 -- Create indexes for better performance
@@ -134,6 +143,8 @@ CREATE INDEX IF NOT EXISTS idx_exercises_muscle_group_id ON exercises(muscle_gro
 CREATE INDEX IF NOT EXISTS idx_exercises_difficulty_level ON exercises(difficulty_level);
 CREATE INDEX IF NOT EXISTS idx_workout_program_exercises_program_id ON workout_program_exercises(workout_program_id);
 CREATE INDEX IF NOT EXISTS idx_workout_program_exercises_exercise_id ON workout_program_exercises(exercise_id);
+CREATE INDEX IF NOT EXISTS idx_user_workouts_user_id ON user_workouts(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_workouts_program_id ON user_workouts(workout_program_id);
 
 -- Optional: Create a sample workout program
 INSERT INTO workout_programs (name, description, difficulty_level, duration_weeks) VALUES

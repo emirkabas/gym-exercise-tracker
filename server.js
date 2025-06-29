@@ -343,6 +343,118 @@ app.post('/api/upload-excel', upload.single('file'), async (req, res) => {
   }
 });
 
+// User Workouts API Endpoints
+
+// Get user's workouts (for now using a default user_id)
+app.get('/api/my-workouts', async (req, res) => {
+  const userId = 'default_user'; // For now, using a default user ID
+  
+  try {
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .select(`
+        *,
+        workout_programs (
+          id,
+          name,
+          description,
+          difficulty_level,
+          duration_weeks
+        )
+      `)
+      .eq('user_id', userId)
+      .order('added_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+    
+    // Transform the data for easier frontend consumption
+    const workouts = data.map(item => ({
+      id: item.id,
+      added_at: item.added_at,
+      program: item.workout_programs
+    }));
+    
+    res.json(workouts);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add workout program to user's workouts
+app.post('/api/my-workouts', async (req, res) => {
+  const { workout_program_id } = req.body;
+  const userId = 'default_user'; // For now, using a default user ID
+  
+  if (!workout_program_id) {
+    return res.status(400).json({ error: 'Workout program ID is required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .insert([{ 
+        workout_program_id: parseInt(workout_program_id), 
+        user_id: userId 
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === '23505') { // Unique constraint violation
+        return res.status(400).json({ error: 'This workout program is already in your collection' });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ id: data.id, message: 'Workout program added to your collection' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Remove workout program from user's workouts
+app.delete('/api/my-workouts/:id', async (req, res) => {
+  const { id } = req.params;
+  const userId = 'default_user'; // For now, using a default user ID
+
+  try {
+    const { error } = await supabase
+      .from('user_workouts')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId);
+
+    if (error) return res.status(500).json({ error: error.message });
+    
+    res.json({ message: 'Workout program removed from your collection' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Check if a workout program is in user's collection
+app.get('/api/my-workouts/check/:programId', async (req, res) => {
+  const { programId } = req.params;
+  const userId = 'default_user'; // For now, using a default user ID
+
+  try {
+    const { data, error } = await supabase
+      .from('user_workouts')
+      .select('id')
+      .eq('workout_program_id', programId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is "not found"
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ isAdded: !!data, userWorkoutId: data?.id });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Serve the main HTML file
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

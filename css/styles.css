@@ -475,6 +475,56 @@ body::before {
     font-size: 0.9rem;
 }
 
+/* Exercise Editing Styles */
+.exercise-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.exercise-content {
+    margin-bottom: 1rem;
+}
+
+.exercise-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.editable-field {
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+.editable-field:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+
+.edit-input {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    color: #ffffff !important;
+    font-size: inherit;
+    padding: 4px 8px;
+    border-radius: 3px;
+    width: 100%;
+    max-width: 300px;
+}
+
+.edit-input:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.5) !important;
+    background: rgba(255,255,255,0.15) !important;
+}
+
+.edit-input::placeholder {
+    color: #666666;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .nav-container {

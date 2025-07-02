@@ -8,7 +8,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // App state
-let currentPage = 'home';
+let currentPage = 'exercises';
 let exercises = [];
 let muscleGroups = [];
 let workoutPrograms = [];
@@ -58,9 +58,6 @@ function loadPage(page) {
     const mainContent = document.querySelector('.main-content');
     
     switch(page) {
-        case 'home':
-            loadHomePage(mainContent);
-            break;
         case 'exercises':
             loadExercisesPage(mainContent);
             break;
@@ -74,49 +71,11 @@ function loadPage(page) {
             loadWorkoutCalendarPage(mainContent);
             break;
         default:
-            loadHomePage(mainContent);
+            loadExercisesPage(mainContent);
     }
 }
 
-// Home page
-function loadHomePage(container) {
-    container.innerHTML = `
-        <section class="hero">
-            <div class="overlay">
-                <h1>The Workout</h1>
-                <p>Strength, flexibility, and results—powered by science.</p>
-            </div>
-        </section>
-        
-        <div class="container">
-            <div class="card-grid">
-                <div class="card">
-                    <h3>Exercises</h3>
-                    <p>Browse our comprehensive library of exercises with detailed instructions, difficulty levels, and equipment requirements.</p>
-                    <a href="#" class="btn" onclick="navigateToPage('exercises')">View Exercises</a>
-                </div>
-                
-                <div class="card">
-                    <h3>Muscle Groups</h3>
-                    <p>Explore exercises organized by muscle groups to target specific areas of your body.</p>
-                    <a href="#" class="btn" onclick="navigateToPage('muscle-groups')">View Muscle Groups</a>
-                </div>
-                
-                <div class="card">
-                    <h3>Workout Programs</h3>
-                    <p>Discover structured workout programs designed for different fitness levels and goals.</p>
-                    <a href="#" class="btn" onclick="navigateToPage('workout-programs')">View Programs</a>
-                </div>
-                
-                <div class="card">
-                    <h3>Workout Calendar</h3>
-                    <p>Track your workout progress and maintain consistency with our calendar feature.</p>
-                    <a href="#" class="btn" onclick="navigateToPage('workout-calendar')">View Calendar</a>
-                </div>
-            </div>
-        </div>
-    `;
-}
+
 
 // Exercises page
 function loadExercisesPage(container) {
@@ -328,13 +287,41 @@ function displayExercises(exercisesToShow) {
     }
     
     container.innerHTML = exercisesToShow.map(exercise => `
-        <div class="card">
-            <h3>${exercise.name}</h3>
-            <p><strong>Muscle Group:</strong> ${exercise.muscle_group_name}</p>
-            <p><strong>Difficulty:</strong> ${exercise.difficulty_level || 'Not specified'}</p>
-            <p><strong>Equipment:</strong> ${exercise.equipment || 'None required'}</p>
-            ${exercise.description ? `<p>${exercise.description}</p>` : ''}
-            <button class="btn btn-secondary" onclick="showExerciseDetails(${exercise.id})">View Details</button>
+        <div class="card" data-exercise-id="${exercise.id}">
+            <div class="exercise-header">
+                <h3 class="editable-field" data-field="name" data-exercise-id="${exercise.id}">${exercise.name}</h3>
+                <button class="btn btn-secondary edit-btn" onclick="toggleEditMode(${exercise.id})">Edit</button>
+            </div>
+            
+            <div class="exercise-content">
+                <p><strong>Muscle Group:</strong> 
+                    <span class="editable-field" data-field="muscle_group_name" data-exercise-id="${exercise.id}">${exercise.muscle_group_name}</span>
+                </p>
+                <p><strong>Difficulty:</strong> 
+                    <span class="editable-field" data-field="difficulty_level" data-exercise-id="${exercise.id}">${exercise.difficulty_level || 'Not specified'}</span>
+                </p>
+                <p><strong>Equipment:</strong> 
+                    <span class="editable-field" data-field="equipment" data-exercise-id="${exercise.id}">${exercise.equipment || 'None required'}</span>
+                </p>
+                <p><strong>Description:</strong> 
+                    <span class="editable-field" data-field="description" data-exercise-id="${exercise.id}">${exercise.description || 'No description'}</span>
+                </p>
+                <p><strong>Instructions:</strong> 
+                    <span class="editable-field" data-field="instructions" data-exercise-id="${exercise.id}">${exercise.instructions || 'No instructions'}</span>
+                </p>
+                <p><strong>Video URL:</strong> 
+                    <span class="editable-field" data-field="video_url" data-exercise-id="${exercise.id}">${exercise.video_url || 'No video'}</span>
+                </p>
+                <p><strong>Link:</strong> 
+                    <span class="editable-field" data-field="link" data-exercise-id="${exercise.id}">${exercise.link || 'No link'}</span>
+                </p>
+            </div>
+            
+            <div class="exercise-actions">
+                <button class="btn btn-secondary" onclick="showExerciseDetails(${exercise.id})">View Details</button>
+                <button class="btn btn-secondary save-btn" onclick="saveExerciseChanges(${exercise.id})" style="display: none;">Save Changes</button>
+                <button class="btn btn-secondary cancel-btn" onclick="cancelEditMode(${exercise.id})" style="display: none;">Cancel</button>
+            </div>
         </div>
     `).join('');
 }
@@ -565,6 +552,141 @@ function nextMonth() {
 function showError(message) {
     console.error(message);
     // You could implement a toast notification system here
+}
+
+// Exercise editing functions
+function toggleEditMode(exerciseId) {
+    const card = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+    const editBtn = card.querySelector('.edit-btn');
+    const saveBtn = card.querySelector('.save-btn');
+    const cancelBtn = card.querySelector('.cancel-btn');
+    const editableFields = card.querySelectorAll('.editable-field');
+    
+    // Store original values for cancel
+    editableFields.forEach(field => {
+        field.setAttribute('data-original-value', field.textContent);
+    });
+    
+    // Show/hide buttons
+    editBtn.style.display = 'none';
+    saveBtn.style.display = 'inline-block';
+    cancelBtn.style.display = 'inline-block';
+    
+    // Make fields editable
+    editableFields.forEach(field => {
+        const fieldName = field.getAttribute('data-field');
+        const currentValue = field.textContent;
+        
+        if (fieldName === 'difficulty_level') {
+            // Create dropdown for difficulty
+            field.innerHTML = `
+                <select class="form-control edit-input">
+                    <option value="">Select Difficulty</option>
+                    <option value="beginner" ${currentValue === 'beginner' ? 'selected' : ''}>Beginner</option>
+                    <option value="intermediate" ${currentValue === 'intermediate' ? 'selected' : ''}>Intermediate</option>
+                    <option value="advanced" ${currentValue === 'advanced' ? 'selected' : ''}>Advanced</option>
+                </select>
+            `;
+        } else if (fieldName === 'muscle_group_name') {
+            // Create dropdown for muscle groups
+            const options = muscleGroups.map(group => 
+                `<option value="${group.id}" ${currentValue === group.name ? 'selected' : ''}>${group.name}</option>`
+            ).join('');
+            field.innerHTML = `
+                <select class="form-control edit-input">
+                    <option value="">Select Muscle Group</option>
+                    ${options}
+                </select>
+            `;
+        } else {
+            // Create text input for other fields
+            field.innerHTML = `<input type="text" class="form-control edit-input" value="${currentValue}">`;
+        }
+    });
+}
+
+function cancelEditMode(exerciseId) {
+    const card = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+    const editBtn = card.querySelector('.edit-btn');
+    const saveBtn = card.querySelector('.save-btn');
+    const cancelBtn = card.querySelector('.cancel-btn');
+    const editableFields = card.querySelectorAll('.editable-field');
+    
+    // Show/hide buttons
+    editBtn.style.display = 'inline-block';
+    saveBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    
+    // Restore original values
+    editableFields.forEach(field => {
+        const originalValue = field.getAttribute('data-original-value');
+        field.textContent = originalValue;
+    });
+}
+
+async function saveExerciseChanges(exerciseId) {
+    const card = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+    const editableFields = card.querySelectorAll('.editable-field');
+    const editBtn = card.querySelector('.edit-btn');
+    const saveBtn = card.querySelector('.save-btn');
+    const cancelBtn = card.querySelector('.cancel-btn');
+    
+    // Collect updated values
+    const updates = {};
+    editableFields.forEach(field => {
+        const fieldName = field.getAttribute('data-field');
+        const input = field.querySelector('.edit-input');
+        
+        if (input) {
+            if (input.tagName === 'SELECT') {
+                updates[fieldName] = input.value;
+            } else {
+                updates[fieldName] = input.value;
+            }
+        }
+    });
+    
+    try {
+        // Update in Supabase
+        const { error } = await supabase
+            .from('exercises')
+            .update(updates)
+            .eq('id', exerciseId);
+        
+        if (error) throw error;
+        
+        // Update local data
+        const exerciseIndex = exercises.findIndex(e => e.id === exerciseId);
+        if (exerciseIndex !== -1) {
+            exercises[exerciseIndex] = { ...exercises[exerciseIndex], ...updates };
+        }
+        
+        // Show/hide buttons
+        editBtn.style.display = 'inline-block';
+        saveBtn.style.display = 'none';
+        cancelBtn.style.display = 'none';
+        
+        // Update display
+        editableFields.forEach(field => {
+            const fieldName = field.getAttribute('data-field');
+            const newValue = updates[fieldName] || field.getAttribute('data-original-value');
+            field.textContent = newValue;
+        });
+        
+        // Show success message
+        showSuccess('Exercise updated successfully!');
+        
+    } catch (error) {
+        console.error('Error updating exercise:', error);
+        showError('Failed to update exercise');
+        // Restore original values on error
+        cancelEditMode(exerciseId);
+    }
+}
+
+function showSuccess(message) {
+    // Simple success notification
+    alert(message); // You could implement a better notification system
 }
 
 // Close modal when clicking outside

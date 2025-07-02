@@ -159,3 +159,5 @@ uploads/
 # Build files
 build/
 dist/ 
+# Local Netlify folder
+.netlify

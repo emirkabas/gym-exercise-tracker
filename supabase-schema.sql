@@ -1,11 +1,12 @@
 -- Gym Exercise Tracker Database Schema for Supabase
 -- Run this in your Supabase SQL Editor
 
--- Enable Row Level Security (RLS) - you can disable this if you want
--- ALTER TABLE muscle_groups ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE workout_programs ENABLE ROW LEVEL SECURITY;
--- ALTER TABLE workout_program_exercises ENABLE ROW LEVEL SECURITY;
+-- Enable Row Level Security (RLS) on all tables
+ALTER TABLE muscle_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workout_programs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workout_program_exercises ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_workouts ENABLE ROW LEVEL SECURITY;
 
 -- Create muscle_groups table
 CREATE TABLE IF NOT EXISTS muscle_groups (
@@ -60,10 +61,44 @@ CREATE TABLE IF NOT EXISTS user_workouts (
     workout_program_id BIGINT REFERENCES workout_programs(id) ON DELETE CASCADE,
     user_id TEXT, -- For future user authentication
     workout_days JSONB, -- Array of workout dates
+    workout_tracking JSONB, -- Track workout progress
     last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     added_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(workout_program_id, user_id)
 );
+
+-- ============================================================================
+-- ROW LEVEL SECURITY POLICIES
+-- ============================================================================
+
+-- Muscle Groups Policies
+-- Allow anon role to perform all operations (for current application setup)
+CREATE POLICY "Allow anon access to muscle groups" ON muscle_groups
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- Exercises Policies
+-- Allow anon role to perform all operations
+CREATE POLICY "Allow anon access to exercises" ON exercises
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- Workout Programs Policies
+-- Allow anon role to perform all operations
+CREATE POLICY "Allow anon access to workout programs" ON workout_programs
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- Workout Program Exercises Policies
+-- Allow anon role to perform all operations
+CREATE POLICY "Allow anon access to workout program exercises" ON workout_program_exercises
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- User Workouts Policies
+-- Allow anon role to perform all operations (with user_id filtering in application)
+CREATE POLICY "Allow anon access to user workouts" ON user_workouts
+    FOR ALL USING (true) WITH CHECK (true);
+
+-- ============================================================================
+-- SAMPLE DATA
+-- ============================================================================
 
 -- Insert sample muscle groups
 INSERT INTO muscle_groups (name, description) VALUES
@@ -165,6 +200,19 @@ INSERT INTO workout_program_exercises (workout_program_id, exercise_id, sets, re
      (SELECT id FROM exercises WHERE name = 'Plank'), 3, 30, 60, 1, 1, 3)
 ON CONFLICT DO NOTHING;
 
--- Grant necessary permissions (adjust as needed for your setup)
--- GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
--- GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon; 
+-- ============================================================================
+-- GRANT PERMISSIONS
+-- ============================================================================
+
+-- Grant necessary permissions for the anon role to perform all operations
+-- This allows your current application to work without authentication
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon;
+
+-- Grant permissions for authenticated users to perform all operations
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+
+-- Grant permissions for service role (for admin operations)
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role; 

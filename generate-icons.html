@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Icon Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .icon { display: inline-block; margin: 10px; text-align: center; }
+        canvas { border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>PWA Icon Generator</h1>
+    <p>This will generate placeholder icons for your PWA. Right-click each canvas and "Save image as..." to save the icons.</p>
+    
+    <div id="icons"></div>
+    
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        const container = document.getElementById('icons');
+        
+        sizes.forEach(size => {
+            const div = document.createElement('div');
+            div.className = 'icon';
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            canvas.id = `icon-${size}`;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Create a simple gym-themed icon
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#1a1a1a');
+            gradient.addColorStop(1, '#0a0a0a');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // Add a simple dumbbell shape
+            ctx.fillStyle = '#ffffff';
+            const barWidth = size * 0.1;
+            const barHeight = size * 0.4;
+            const weightSize = size * 0.15;
+            
+            // Draw dumbbell
+            ctx.fillRect(size * 0.35, size * 0.3, barWidth, barHeight);
+            ctx.fillRect(size * 0.2, size * 0.35, weightSize, weightSize);
+            ctx.fillRect(size * 0.65, size * 0.35, weightSize, weightSize);
+            
+            const label = document.createElement('p');
+            label.textContent = `${size}x${size}`;
+            
+            div.appendChild(canvas);
+            div.appendChild(label);
+            container.appendChild(div);
+        });
+    </script>
+</body>
+</html> 

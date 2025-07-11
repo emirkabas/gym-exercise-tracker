@@ -169,45 +169,54 @@ const ExerciseTrackingScreen = ({ route, navigation }) => {
           <Text style={styles.date}>{new Date(dateString).toLocaleDateString()}</Text>
         </View>
 
-        {exercises.map((exercise, index) => (
-          <View key={exercise.exercise_id} style={styles.exerciseContainer}>
-            <View style={styles.exerciseHeader}>
-              <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
-              <Text style={styles.exerciseTarget}>
-                Target: {exercise.sets} sets × {exercise.reps} reps
-              </Text>
-            </View>
-            
-            {exercise.description && (
-              <Text style={styles.exerciseDescription}>{exercise.description}</Text>
-            )}
-
-            <View style={styles.setsContainer}>
-              {renderSetInputs(exercise, exercise.sets)}
-            </View>
-
-            <TouchableOpacity
-              style={styles.detailsButton}
-              onPress={() => navigation.navigate('ExerciseDetails', { exercise })}
-            >
-              <Text style={styles.detailsButtonText}>View Exercise Details</Text>
-            </TouchableOpacity>
+        {exercises.length === 0 ? (
+          <View style={styles.noExercisesContainer}>
+            <Text style={styles.noExercisesText}>No exercises found for this program.</Text>
+            <Text style={styles.noExercisesSubtext}>Please add exercises to this workout program.</Text>
           </View>
-        ))}
+        ) : (
+          <>
+            {exercises.map((exercise, index) => (
+              <TouchableOpacity
+                key={exercise.exercise_id}
+                style={styles.exerciseCard}
+                onPress={() => navigation.navigate('ExerciseDetails', { 
+                  exercise,
+                  programId,
+                  dateString,
+                  programName
+                })}
+              >
+                <View style={styles.exerciseCardContent}>
+                  <Text style={styles.exerciseName}>{exercise.exercise_name}</Text>
+                  <Text style={styles.exerciseTarget}>
+                    {exercise.sets} sets × {exercise.reps} reps
+                  </Text>
+                  {exercise.description && (
+                    <Text style={styles.exerciseDescription} numberOfLines={2}>
+                      {exercise.description}
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.exerciseArrow}>→</Text>
+              </TouchableOpacity>
+            ))}
 
-        <View style={styles.saveContainer}>
-          <TouchableOpacity
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-            onPress={saveProgress}
-            disabled={saving}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={styles.saveButtonText}>Save Progress</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+            <View style={styles.saveContainer}>
+              <TouchableOpacity
+                style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+                onPress={saveProgress}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save All Progress</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -248,13 +257,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#cccccc',
   },
-  exerciseContainer: {
+  exerciseCard: {
     margin: 20,
-    padding: 20,
+    marginBottom: 12,
+    padding: 16,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  exerciseCardContent: {
+    flex: 1,
+  },
+  exerciseArrow: {
+    fontSize: 20,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  noExercisesContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  noExercisesText: {
+    fontSize: 18,
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  noExercisesSubtext: {
+    fontSize: 14,
+    color: '#cccccc',
+    textAlign: 'center',
   },
   exerciseHeader: {
     marginBottom: 12,

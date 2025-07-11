@@ -63,7 +63,7 @@ const WorkoutCalendarScreen = ({ navigation }) => {
     if (workoutsForDate.length > 0) {
       // Show existing workout
       const workout = workoutsForDate[0];
-      navigation.navigate('ExerciseTracking', {
+      navigation.navigate('ExercisesList', {
         programId: workout.program.id,
         dateString: dateString,
         programName: workout.program.name,
@@ -100,9 +100,9 @@ const WorkoutCalendarScreen = ({ navigation }) => {
       // Add workout to calendar (you'll need to implement this)
       // await addWorkoutToCalendar(programId, dateString);
       
-      // Navigate to exercise tracking
+      // Navigate to exercises list
       const program = workoutPrograms.find(p => p.id === programId);
-      navigation.navigate('ExerciseTracking', {
+      navigation.navigate('ExercisesList', {
         programId: programId,
         dateString: dateString,
         programName: program.name,

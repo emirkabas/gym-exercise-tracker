@@ -10,6 +10,7 @@ import MuscleGroupsScreen from './src/screens/MuscleGroupsScreen';
 import WorkoutProgramsScreen from './src/screens/WorkoutProgramsScreen';
 import ExerciseTrackingScreen from './src/screens/ExerciseTrackingScreen';
 import ExerciseDetailsScreen from './src/screens/ExerciseDetailsScreen';
+import ExercisesListScreen from './src/screens/ExercisesListScreen';
 
 const Stack = createStackNavigator();
 
@@ -51,14 +52,19 @@ export default function App() {
             options={{ title: 'Workout Programs' }}
           />
           <Stack.Screen 
+            name="ExercisesList" 
+            component={ExercisesListScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen 
             name="ExerciseTracking" 
             component={ExerciseTrackingScreen}
-            options={{ title: 'Track Exercise' }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen 
             name="ExerciseDetails" 
             component={ExerciseDetailsScreen}
-            options={{ title: 'Exercise Details' }}
+            options={{ headerShown: false }}
           />
         </Stack.Navigator>
       </NavigationContainer>

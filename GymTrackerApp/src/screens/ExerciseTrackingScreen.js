@@ -27,25 +27,29 @@ const ExerciseTrackingScreen = ({ route, navigation }) => {
   const loadExercises = async () => {
     try {
       setLoading(true);
+      console.log('Loading exercises for program:', programId);
+      
       const programExercises = await fetchProgramExercises(programId, dateString);
-      const allExercises = await fetchExercises();
+      console.log('Program exercises loaded:', programExercises.length);
       
-      // Merge exercise details
-      const exercisesWithDetails = programExercises.map(programExercise => {
-        const exerciseDetails = allExercises.find(e => e.id === programExercise.exercise_id);
-        return {
-          ...programExercise,
-          ...exerciseDetails,
-        };
-      });
+      if (programExercises.length === 0) {
+        Alert.alert(
+          'No Exercises Found', 
+          'This workout program doesn\'t have any exercises assigned yet. Please add exercises to the program first.',
+          [
+            { text: 'Go Back', onPress: () => navigation.goBack() }
+          ]
+        );
+        return;
+      }
       
-      setExercises(exercisesWithDetails);
+      setExercises(programExercises);
       
       // Load existing tracking data
       await loadTrackingData();
     } catch (error) {
       console.error('Error loading exercises:', error);
-      Alert.alert('Error', 'Failed to load exercises');
+      Alert.alert('Error', 'Failed to load exercises. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -155,6 +159,12 @@ const ExerciseTrackingScreen = ({ route, navigation }) => {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
         <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>← Back to Calendar</Text>
+          </TouchableOpacity>
           <Text style={styles.title}>{programName}</Text>
           <Text style={styles.date}>{new Date(dateString).toLocaleDateString()}</Text>
         </View>
@@ -214,6 +224,19 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     alignItems: 'center',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '500',
   },
   title: {
     fontSize: 24,

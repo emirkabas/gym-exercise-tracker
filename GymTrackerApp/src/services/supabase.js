@@ -87,6 +87,8 @@ export const fetchUserWorkouts = async () => {
 
 export const fetchProgramExercises = async (programId, dateString = null) => {
   try {
+    console.log('Fetching exercises for program:', programId, 'date:', dateString);
+    
     let query = supabase
       .from('workout_program_exercises')
       .select(`
@@ -104,20 +106,34 @@ export const fetchProgramExercises = async (programId, dateString = null) => {
       `)
       .eq('workout_program_id', programId);
     
-    if (dateString) {
-      const date = new Date(dateString);
-      const dayOfWeek = date.getDay() === 0 ? 7 : date.getDay();
-      query = query.eq('day_of_week', dayOfWeek);
-    }
-    
+    // For now, let's get all exercises for the program without day filtering
+    // This will show all exercises regardless of the day
     const { data, error } = await query.order('order_in_workout');
     
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase error:', error);
+      throw error;
+    }
     
-    return data.map(item => ({
-      ...item,
-      exercise_name: item.exercises?.name || 'Unknown Exercise'
+    console.log('Raw data from Supabase:', data);
+    
+    const mappedData = data.map(item => ({
+      exercise_id: item.exercise_id,
+      exercise_name: item.exercises?.name || 'Unknown Exercise',
+      sets: item.sets || 3,
+      reps: item.reps || 10,
+      description: item.exercises?.description || '',
+      muscle_group_id: item.exercises?.muscle_group_id,
+      equipment: item.exercises?.equipment,
+      difficulty_level: item.exercises?.difficulty_level,
+      instructions: item.exercises?.instructions,
+      video_url: item.exercises?.video_url,
+      day_of_week: item.day_of_week,
+      order_in_workout: item.order_in_workout
     }));
+    
+    console.log('Mapped exercises:', mappedData);
+    return mappedData;
   } catch (error) {
     console.error('Error fetching program exercises:', error);
     return [];

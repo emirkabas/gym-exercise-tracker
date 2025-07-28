@@ -1483,4 +1483,243 @@ input:checked + .slider:before {
         padding: 8px 12px;
         font-size: 0.9rem;
     }
+}
+
+/* Workout Program Management Styles */
+
+.workout-program-card {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.workout-program-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.program-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.program-header h3 {
+    margin: 0;
+    flex: 1;
+    padding-right: 10px;
+}
+
+.delete-btn {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 18px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.delete-btn:hover {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: #dc3545;
+    transform: scale(1.1);
+}
+
+.delete-btn span {
+    line-height: 1;
+}
+
+.program-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.program-actions .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #ffffff;
+}
+
+.btn-outline:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.btn-danger {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+}
+
+.btn-danger:hover {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: #dc3545;
+}
+
+/* Program Modal Styles */
+.program-modal {
+    max-width: 500px;
+    width: 90%;
+}
+
+.program-modal h2 {
+    margin-bottom: 20px;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.program-modal .form-group {
+    margin-bottom: 20px;
+}
+
+.program-modal label {
+    display: block;
+    margin-bottom: 8px;
+    color: rgba(255,255,255,0.9);
+    font-weight: 500;
+}
+
+.program-modal input,
+.program-modal select,
+.program-modal textarea {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.program-modal input:focus,
+.program-modal select:focus,
+.program-modal textarea:focus {
+    outline: none;
+    border-color: #007AFF;
+    background: rgba(255,255,255,0.1);
+}
+
+.program-modal input::placeholder,
+.program-modal textarea::placeholder {
+    color: rgba(255,255,255,0.5);
+}
+
+.program-modal textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.form-actions .btn {
+    min-width: 120px;
+}
+
+/* Delete Modal Styles */
+.delete-modal {
+    max-width: 400px;
+    width: 90%;
+}
+
+.delete-modal h2 {
+    color: #dc3545;
+    margin-bottom: 15px;
+}
+
+.delete-modal p {
+    margin-bottom: 15px;
+    line-height: 1.6;
+}
+
+.delete-modal .warning {
+    color: #ffc107;
+    font-weight: 500;
+    background: rgba(255, 193, 7, 0.1);
+    padding: 10px;
+    border-radius: 6px;
+    border-left: 3px solid #ffc107;
+}
+
+/* Page Header with Create Button */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.page-header .btn-primary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    font-weight: 500;
+}
+
+.page-header .btn-primary span {
+    font-size: 18px;
+    font-weight: bold;
+}
+
+/* Mobile Responsive for Program Management */
+@media (max-width: 768px) {
+    .program-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .delete-btn {
+        align-self: flex-end;
+    }
+    
+    .program-actions {
+        flex-direction: column;
+    }
+    
+    .program-actions .btn {
+        width: 100%;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .page-header .btn-primary {
+        justify-content: center;
+    }
 } 

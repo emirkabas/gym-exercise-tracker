@@ -185,6 +185,9 @@ function loadWorkoutProgramsPage(container) {
                     <img src="icons/icons-back-50.png" alt="Back" class="back-icon">
                 </button>
                 <h1 class="page-title">Workout Programs</h1>
+                <button class="btn btn-primary" onclick="showCreateProgramModal()">
+                    <span>+</span> Create New Program
+                </button>
             </div>
             
             <div id="workoutProgramsList" class="card-grid">
@@ -489,7 +492,19 @@ async function loadWorkoutPrograms() {
         
         if (error) throw error;
         
-        workoutPrograms = data;
+        // Load database programs
+        workoutPrograms = data || [];
+        
+        // Load user-created programs from localStorage
+        const userPrograms = localStorage.getItem('workoutPrograms');
+        if (userPrograms) {
+            try {
+                const parsedUserPrograms = JSON.parse(userPrograms);
+                workoutPrograms = [...workoutPrograms, ...parsedUserPrograms];
+            } catch (e) {
+                console.error('Error parsing user programs:', e);
+            }
+        }
         
         if (currentPage === 'workout-programs') {
             displayWorkoutPrograms(workoutPrograms);
@@ -604,12 +619,20 @@ function displayWorkoutPrograms(programs) {
     }
     
     container.innerHTML = programs.map(program => `
-        <div class="card">
-            <h3>${program.name}</h3>
+        <div class="card workout-program-card">
+            <div class="program-header">
+                <h3>${program.name}</h3>
+                <button class="delete-btn" onclick="deleteWorkoutProgram(${program.id}, '${program.name}')" title="Delete Program">
+                    <span>&times;</span>
+                </button>
+            </div>
             <p><strong>Difficulty:</strong> ${program.difficulty_level || 'Not specified'}</p>
             <p><strong>Duration:</strong> ${program.duration_weeks || 'Not specified'} weeks</p>
             <p>${program.description || 'No description available.'}</p>
-            <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
+            <div class="program-actions">
+                <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
+                <button class="btn btn-outline" onclick="editWorkoutProgram(${program.id})">Edit</button>
+            </div>
         </div>
     `).join('');
 }
@@ -2026,4 +2049,202 @@ window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.remove();
     }
+}
+
+// Workout Program Management Functions
+
+function showCreateProgramModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content program-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Create New Workout Program</h2>
+            <form id="createProgramForm" onsubmit="createWorkoutProgram(event)">
+                <div class="form-group">
+                    <label for="programName">Program Name:</label>
+                    <input type="text" id="programName" required placeholder="e.g., Beginner Full Body">
+                </div>
+                <div class="form-group">
+                    <label for="programDifficulty">Difficulty Level:</label>
+                    <select id="programDifficulty" required>
+                        <option value="">Select Difficulty</option>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="programDuration">Duration (weeks):</label>
+                    <input type="number" id="programDuration" required min="1" max="52" placeholder="4">
+                </div>
+                <div class="form-group">
+                    <label for="programDescription">Description:</label>
+                    <textarea id="programDescription" rows="4" placeholder="Describe the workout program..."></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Program</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+function createWorkoutProgram(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('programName').value.trim();
+    const difficulty = document.getElementById('programDifficulty').value;
+    const duration = parseInt(document.getElementById('programDuration').value);
+    const description = document.getElementById('programDescription').value.trim();
+    
+    if (!name || !difficulty || !duration) {
+        showError('Please fill in all required fields');
+        return;
+    }
+    
+    // Create new program object
+    const newProgram = {
+        id: Date.now(), // Simple ID generation for demo
+        name: name,
+        difficulty_level: difficulty,
+        duration_weeks: duration,
+        description: description,
+        created_at: new Date().toISOString()
+    };
+    
+    // Add to workout programs array
+    workoutPrograms.push(newProgram);
+    
+    // Save to localStorage (in a real app, this would go to the database)
+    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
+    
+    // Close modal and refresh display
+    closeModal(document.querySelector('.modal'));
+    displayWorkoutPrograms(workoutPrograms);
+    
+    showSuccess(`Workout program "${name}" created successfully!`);
+}
+
+function editWorkoutProgram(programId) {
+    const program = workoutPrograms.find(p => p.id === programId);
+    if (!program) {
+        showError('Program not found');
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content program-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Edit Workout Program</h2>
+            <form id="editProgramForm" onsubmit="updateWorkoutProgram(event, ${programId})">
+                <div class="form-group">
+                    <label for="editProgramName">Program Name:</label>
+                    <input type="text" id="editProgramName" required value="${program.name}">
+                </div>
+                <div class="form-group">
+                    <label for="editProgramDifficulty">Difficulty Level:</label>
+                    <select id="editProgramDifficulty" required>
+                        <option value="Beginner" ${program.difficulty_level === 'Beginner' ? 'selected' : ''}>Beginner</option>
+                        <option value="Intermediate" ${program.difficulty_level === 'Intermediate' ? 'selected' : ''}>Intermediate</option>
+                        <option value="Advanced" ${program.difficulty_level === 'Advanced' ? 'selected' : ''}>Advanced</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editProgramDuration">Duration (weeks):</label>
+                    <input type="number" id="editProgramDuration" required min="1" max="52" value="${program.duration_weeks}">
+                </div>
+                <div class="form-group">
+                    <label for="editProgramDescription">Description:</label>
+                    <textarea id="editProgramDescription" rows="4">${program.description || ''}</textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Program</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+function updateWorkoutProgram(event, programId) {
+    event.preventDefault();
+    
+    const name = document.getElementById('editProgramName').value.trim();
+    const difficulty = document.getElementById('editProgramDifficulty').value;
+    const duration = parseInt(document.getElementById('editProgramDuration').value);
+    const description = document.getElementById('editProgramDescription').value.trim();
+    
+    if (!name || !difficulty || !duration) {
+        showError('Please fill in all required fields');
+        return;
+    }
+    
+    // Find and update the program
+    const programIndex = workoutPrograms.findIndex(p => p.id === programId);
+    if (programIndex === -1) {
+        showError('Program not found');
+        return;
+    }
+    
+    workoutPrograms[programIndex] = {
+        ...workoutPrograms[programIndex],
+        name: name,
+        difficulty_level: difficulty,
+        duration_weeks: duration,
+        description: description,
+        updated_at: new Date().toISOString()
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
+    
+    // Close modal and refresh display
+    closeModal(document.querySelector('.modal'));
+    displayWorkoutPrograms(workoutPrograms);
+    
+    showSuccess(`Workout program "${name}" updated successfully!`);
+}
+
+function deleteWorkoutProgram(programId, programName) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content delete-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Delete Workout Program</h2>
+            <p>Are you sure you want to delete "<strong>${programName}</strong>"?</p>
+            <p class="warning">This action cannot be undone.</p>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteProgram(${programId}, '${programName}')">Delete Program</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+function confirmDeleteProgram(programId, programName) {
+    // Remove from workout programs array
+    workoutPrograms = workoutPrograms.filter(p => p.id !== programId);
+    
+    // Save to localStorage
+    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
+    
+    // Close modal and refresh display
+    closeModal(document.querySelector('.modal'));
+    displayWorkoutPrograms(workoutPrograms);
+    
+    showSuccess(`Workout program "${programName}" deleted successfully!`);
 } // Force redeploy - Mon Jul 28 14:45:08 CEST 2025

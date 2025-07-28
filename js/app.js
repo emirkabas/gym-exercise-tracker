@@ -2074,10 +2074,11 @@ function showExerciseTracking(exerciseId, sets, reps, dateString, programId) {
                         ${generateSetInputs(sets, trackingData)}
                     </div>
                     
-                    <div class="tracking-actions">
-                        <button class="btn btn-secondary" onclick="saveExerciseTracking(${exerciseId}, '${dateString}', ${programId})">Save Progress</button>
-                        <button class="btn btn-secondary" onclick="showExerciseDetails(${exerciseId})">View Exercise Details</button>
-                    </div>
+                                          <div class="tracking-actions">
+                          <button class="btn btn-primary" onclick="saveExerciseProgress('${exerciseId}', '${programId}', '${dateString}')">Save Progress</button>
+                          <button class="btn btn-secondary" onclick="testSaveFunction('${exerciseId}', '${programId}', '${dateString}')">Test Save</button>
+                          <button class="btn btn-secondary" onclick="showExerciseDetails(${exerciseId})">View Exercise Details</button>
+                      </div>
                 </div>
             </div>
         `;
@@ -2146,63 +2147,7 @@ async function loadExerciseTrackingData(exerciseId, dateString) {
     }
 }
 
-async function saveExerciseTracking(exerciseId, dateString, programId) {
-    try {
-        const trackingData = {};
-        const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-        const inputs = exerciseCard.querySelectorAll('input[data-set]');
-        
-        inputs.forEach(input => {
-            const set = input.getAttribute('data-set');
-            const field = input.getAttribute('data-field');
-            const value = input.value;
-            
-            if (set && field) {
-                if (!trackingData[set]) trackingData[set] = {};
-                trackingData[set][field] = value;
-            }
-        });
-        
-        // Save to database
-        const { error } = await supabase
-            .from('user_workouts')
-            .update({
-                workout_tracking: {
-                    ...trackingData,
-                    [exerciseId]: {
-                        date: dateString,
-                        sets: trackingData
-                    }
-                },
-                last_updated: new Date().toISOString()
-            })
-            .eq('workout_program_id', programId)
-            .eq('user_id', 'default_user');
-        
-        if (error) throw error;
-        
-        // Also save to localStorage as backup
-        const key = `tracking_${exerciseId}_${dateString}`;
-        localStorage.setItem(key, JSON.stringify(trackingData));
-        
-        showSuccess('Progress saved successfully!');
-        
-        // Update the save button to show saved state
-        const saveBtn = exerciseCard.querySelector('.save-tracking-btn');
-        if (saveBtn) {
-            saveBtn.textContent = 'Saved!';
-            saveBtn.classList.add('saved');
-            setTimeout(() => {
-                saveBtn.textContent = 'Save Progress';
-                saveBtn.classList.remove('saved');
-            }, 2000);
-        }
-        
-    } catch (error) {
-        console.error('Error saving tracking data:', error);
-        showError('Failed to save progress');
-    }
-}
+
 
 // Save all progress for the current workout
 async function saveAllProgress() {

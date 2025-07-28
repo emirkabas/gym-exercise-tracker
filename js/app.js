@@ -15,6 +15,12 @@ let workoutPrograms = [];
 let userWorkouts = [];
 let navigationHistory = [];
 let currentParams = {};
+let currentDate = new Date();
+let selectedDate = new Date(); // Today's date by default
+let calendarView = 'month'; // 'day', 'week', 'month'
+let showWorkoutToday = false;
+let selectedProgram = '';
+let scheduledWorkouts = {}; // Store scheduled workouts
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
@@ -281,6 +287,15 @@ function loadExerciseTrackingPage(container, params) {
                     <p>Loading exercises...</p>
                 </div>
             </div>
+            
+            <div class="workout-actions">
+                <button class="btn btn-secondary" onclick="goBack()">
+                    ← Back to Calendar
+                </button>
+                <button class="btn btn-primary" onclick="saveAllProgress()">
+                    Save All Progress
+                </button>
+            </div>
         </div>
     `;
     
@@ -331,24 +346,59 @@ function loadWorkoutCalendarPage(container) {
     container.innerHTML = `
         <div class="container">
             <div class="page-header">
-                <h1 class="page-title">Workout Calendar</h1>
+                <h1 class="page-title">Calendar</h1>
+            </div>
+            
+            <!-- View Toggle Buttons -->
+            <div class="calendar-view-toggle">
+                <button class="view-toggle-btn ${calendarView === 'day' ? 'active' : ''}" onclick="switchCalendarView('day')">Day</button>
+                <button class="view-toggle-btn ${calendarView === 'week' ? 'active' : ''}" onclick="switchCalendarView('week')">Week</button>
+                <button class="view-toggle-btn ${calendarView === 'month' ? 'active' : ''}" onclick="switchCalendarView('month')">Month</button>
             </div>
             
             <div class="calendar">
                 <div class="calendar-header">
-                    <button class="btn btn-secondary" onclick="previousMonth()">Previous</button>
-                    <h2 id="currentMonth">January 2024</h2>
-                    <button class="btn btn-secondary" onclick="nextMonth()">Next</button>
+                    <button class="btn btn-secondary" onclick="previousPeriod()">Previous</button>
+                    <h2 id="currentPeriod">January 2024</h2>
+                    <button class="btn btn-secondary" onclick="nextPeriod()">Next</button>
                 </div>
                 
                 <div id="calendarGrid" class="calendar-grid">
                     <!-- Calendar will be generated here -->
                 </div>
             </div>
+            
+            <!-- Workout Today Section (only for today) -->
+            <div id="workoutTodaySection" class="workout-today-section" style="display: none;">
+                <div class="workout-toggle">
+                    <span>Workout Today?</span>
+                    <label class="switch">
+                        <input type="checkbox" id="workoutTodayToggle" onchange="toggleWorkoutToday()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                
+                <div id="programSelection" class="program-selection" style="display: none;">
+                    <button class="btn btn-primary" onclick="showProgramSelectionModal()">
+                        ${selectedProgram || 'Select Workout Program'}
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Selected Date Workout Section (for non-today dates) -->
+            <div id="selectedDateSection" class="selected-date-section" style="display: none;">
+                <h3 id="selectedDateTitle">Workout for Selected Date</h3>
+                <div id="selectedDateContent">
+                    <button class="btn btn-primary" onclick="showProgramSelectionModal()">
+                        Add Workout
+                    </button>
+                </div>
+            </div>
         </div>
     `;
     
     generateCalendar();
+    updateWorkoutSections();
 }
 
 // Data loading functions
@@ -836,7 +886,7 @@ async function loadExerciseTrackingData(programId, dateString) {
     }
 }
 
-function generateSetInputsForTracking(exercise, sets) {
+function generateSetInputsForTracking(exercise, sets, targetReps = 10) {
     let html = '';
     for (let i = 1; i <= sets; i++) {
         html += `
@@ -846,20 +896,21 @@ function generateSetInputsForTracking(exercise, sets) {
                     <div class="input-group">
                         <label>Weight (kg/lbs):</label>
                         <input type="number" class="form-control weight-input" 
-                               data-exercise="${exercise.exercise_id}" data-set="${i}" data-field="weight" 
-                               placeholder="0">
+                               data-exercise="${exercise.exercise_id || exercise.id}" data-set="${i}" data-field="weight" 
+                               placeholder="0" min="0" step="0.5">
                     </div>
                     <div class="input-group">
-                        <label>Reps:</label>
+                        <label>Reps Completed:</label>
                         <input type="number" class="form-control reps-input" 
-                               data-exercise="${exercise.exercise_id}" data-set="${i}" data-field="reps" 
-                               placeholder="0">
+                               data-exercise="${exercise.exercise_id || exercise.id}" data-set="${i}" data-field="reps" 
+                               placeholder="${targetReps}" min="0" max="100">
+                        <small class="target-reps">Target: ${targetReps} reps</small>
                     </div>
                     <div class="input-group">
                         <label>Notes:</label>
                         <input type="text" class="form-control notes-input" 
-                               data-exercise="${exercise.exercise_id}" data-set="${i}" data-field="notes" 
-                               placeholder="Optional notes">
+                               data-exercise="${exercise.exercise_id || exercise.id}" data-set="${i}" data-field="notes" 
+                               placeholder="How did it feel? Any issues?">
                     </div>
                 </div>
             </div>
@@ -879,14 +930,27 @@ function formatDate(dateString) {
 }
 
 function selectWorkoutProgram(programId, dateString) {
-    // Add workout to user's calendar
-    addWorkoutToCalendar(programId, dateString).then(() => {
-        // Navigate to exercise tracking
-        navigateToPage('exercise-tracking', { 
-            programId: programId, 
-            dateString: dateString 
-        });
-    });
+    const program = workoutPrograms.find(p => p.id == programId);
+    if (program) {
+        selectedProgram = program.name;
+        scheduledWorkouts[dateString] = program;
+        
+        // Update the UI
+        const programSelection = document.getElementById('programSelection');
+        if (programSelection) {
+            const button = programSelection.querySelector('button');
+            button.textContent = selectedProgram;
+        }
+        
+        // Show success message
+        showSuccess(`Workout "${program.name}" scheduled for ${new Date(dateString).toLocaleDateString()}`);
+        
+        // Regenerate calendar to show the new workout
+        generateCalendar();
+        
+        // Navigate to workout details
+        showWorkoutProgramDetails(programId, dateString);
+    }
 }
 
 async function addWorkoutToCalendar(programId, dateString) {
@@ -937,9 +1001,99 @@ function closeModal(element) {
 }
 
 // Calendar functions
-let currentDate = new Date();
 
 function generateCalendar() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    let calendarHTML = '';
+    
+    switch(calendarView) {
+        case 'day':
+            calendarHTML = generateDayView();
+            document.getElementById('currentPeriod').textContent = selectedDate.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            break;
+        case 'week':
+            calendarHTML = generateWeekView();
+            const weekStart = getWeekStart(selectedDate);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            document.getElementById('currentPeriod').textContent = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+            break;
+        case 'month':
+            calendarHTML = generateMonthView();
+            document.getElementById('currentPeriod').textContent = `${monthNames[month]} ${year}`;
+            break;
+    }
+    
+    const calendarGrid = document.getElementById('calendarGrid');
+    calendarGrid.innerHTML = calendarHTML;
+}
+
+function generateDayView() {
+    const dateString = selectedDate.toISOString().split('T')[0];
+    const hasWorkout = scheduledWorkouts[dateString];
+    
+    return `
+        <div class="day-view">
+            <div class="day-schedule">
+                <h3>Today's Schedule</h3>
+                ${hasWorkout ? `
+                    <div class="scheduled-workout">
+                        <h4>${hasWorkout.name}</h4>
+                        <p>Duration: ${hasWorkout.duration || 'Not specified'}</p>
+                        <button class="btn btn-primary" onclick="showWorkoutDetails('${dateString}')">View Details</button>
+                    </div>
+                ` : `
+                    <p>No workout scheduled</p>
+                `}
+            </div>
+        </div>
+    `;
+}
+
+function generateWeekView() {
+    const weekStart = getWeekStart(selectedDate);
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    let weekHTML = '<div class="week-view">';
+    
+    // Day headers
+    weekHTML += '<div class="week-header">';
+    dayNames.forEach(day => {
+        weekHTML += `<div class="week-day-header">${day}</div>`;
+    });
+    weekHTML += '</div>';
+    
+    // Week grid
+    weekHTML += '<div class="week-grid">';
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(weekStart);
+        date.setDate(date.getDate() + i);
+        const dateString = date.toISOString().split('T')[0];
+        const hasWorkout = scheduledWorkouts[dateString];
+        const isSelected = date.toDateString() === selectedDate.toDateString();
+        const isToday = date.toDateString() === new Date().toDateString();
+        
+        weekHTML += `
+            <div class="week-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectDateFromWeek('${dateString}')">
+                <div class="week-day-number">${date.getDate()}</div>
+                ${hasWorkout ? '<div class="workout-indicator"></div>' : ''}
+            </div>
+        `;
+    }
+    weekHTML += '</div></div>';
+    
+    return weekHTML;
+}
+
+function generateMonthView() {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     
@@ -948,44 +1102,42 @@ function generateCalendar() {
     const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
     
-    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                       'July', 'August', 'September', 'October', 'November', 'December'];
-    
-    document.getElementById('currentMonth').textContent = `${monthNames[month]} ${year}`;
-    
-    const calendarGrid = document.getElementById('calendarGrid');
     let calendarHTML = '';
     
     // Add day headers
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     dayNames.forEach(day => {
-        calendarHTML += `<div class="calendar-day" style="background: rgba(255,255,255,0.1); font-weight: bold;">${day}</div>`;
+        calendarHTML += `<div class="calendar-day-header">${day}</div>`;
     });
     
     // Add empty cells for days before the first day of the month
     for (let i = 0; i < startingDay; i++) {
-        calendarHTML += '<div class="calendar-day"></div>';
+        calendarHTML += '<div class="calendar-day empty"></div>';
     }
     
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
-        const hasWorkout = checkForWorkout(year, month + 1, day);
+        const date = new Date(year, month, day);
+        const dateString = date.toISOString().split('T')[0];
+        const hasWorkout = scheduledWorkouts[dateString];
+        const isSelected = date.toDateString() === selectedDate.toDateString();
+        const isToday = date.toDateString() === new Date().toDateString();
+        
         calendarHTML += `
-            <div class="calendar-day ${hasWorkout ? 'has-workout' : ''}" onclick="selectDate(${year}, ${month + 1}, ${day})">
+            <div class="calendar-day ${hasWorkout ? 'has-workout' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectDateFromMonth(${year}, ${month + 1}, ${day})">
                 <div class="calendar-day-number">${day}</div>
                 ${hasWorkout ? '<div class="workout-indicator"></div>' : ''}
             </div>
         `;
     }
     
-    calendarGrid.innerHTML = calendarHTML;
+    return calendarHTML;
 }
 
 function checkForWorkout(year, month, day) {
-    // This is a placeholder - in a real app, you'd check against actual workout data
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     return userWorkouts.some(workout => 
-        workout.workout_days && workout.workout_days.includes(dateString)
+        workout.workout_days && Array.isArray(workout.workout_days) && workout.workout_days.includes(dateString)
     );
 }
 
@@ -995,22 +1147,8 @@ function selectDate(year, month, day) {
 }
 
 function showWorkoutForDate(dateString) {
-    // Find workouts for this date
-    const workoutsForDate = userWorkouts.filter(workout => 
-        workout.workout_days && workout.workout_days.includes(dateString)
-    );
-    
-    if (workoutsForDate.length === 0) {
-        showProgramSelection(dateString);
-        return;
-    }
-    
-    // Show the first workout program
-    const workout = workoutsForDate[0];
-    navigateToPage('exercise-tracking', { 
-        programId: workout.program.id, 
-        dateString: dateString 
-    });
+    // Always show program selection, regardless of existing workouts
+    showProgramSelection(dateString);
 }
 
 function showProgramSelection(dateString) {
@@ -1019,25 +1157,181 @@ function showProgramSelection(dateString) {
         return;
     }
     
-    const programOptions = workoutPrograms.map(program => ({
-        text: `${program.name} (${program.difficulty_level || 'Not specified'})`,
-        onPress: () => selectWorkoutProgram(program.id, dateString),
-    }));
+    // Create a modal to show program selection
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    modal.style.zIndex = '1000';
     
-    // For now, just select the first program
-    if (programOptions.length > 0) {
-        selectWorkoutProgram(workoutPrograms[0].id, dateString);
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    modalContent.style.background = '#1a1a1a';
+    modalContent.style.border = '1px solid rgba(255,255,255,0.1)';
+    modalContent.style.borderRadius = '15px';
+    modalContent.style.padding = '30px';
+    modalContent.style.maxWidth = '500px';
+    modalContent.style.width = '90%';
+    modalContent.style.maxHeight = '80vh';
+    modalContent.style.overflowY = 'auto';
+    
+    modalContent.innerHTML = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #ffffff; margin-bottom: 10px;">Select Workout Program</h2>
+            <p style="color: #cccccc; margin-bottom: 20px;">Choose a workout program for ${new Date(dateString).toLocaleDateString()}</p>
+        </div>
+        <div id="programOptions" style="display: flex; flex-direction: column; gap: 10px;">
+            ${workoutPrograms.map(program => `
+                <button 
+                    class="btn btn-secondary program-option" 
+                    data-program-id="${program.id}"
+                    data-date-string="${dateString}"
+                    style="text-align: left; padding: 15px; margin: 0; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #ffffff; cursor: pointer; transition: all 0.3s ease;">
+                    <div style="font-weight: 600; margin-bottom: 5px;">${program.name}</div>
+                    <div style="font-size: 0.9rem; color: #cccccc;">${program.difficulty_level || 'Not specified'} • ${program.duration_weeks || 'Unknown'} weeks</div>
+                </button>
+            `).join('')}
+        </div>
+        <div style="text-align: center; margin-top: 20px;">
+            <button class="btn btn-secondary" onclick="closeModal(this)" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);">Cancel</button>
+        </div>
+    `;
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Add event listeners to program options
+    const programButtons = modal.querySelectorAll('.program-option');
+    programButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const programId = this.getAttribute('data-program-id');
+            const dateString = this.getAttribute('data-date-string');
+            closeModal(modal);
+            selectWorkoutProgram(programId, dateString);
+        });
+    });
+}
+
+// Helper functions
+function getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day;
+    return new Date(d.setDate(diff));
+}
+
+function isToday(date) {
+    return date.toDateString() === new Date().toDateString();
+}
+
+function isSameDate(date1, date2) {
+    return date1.toDateString() === date2.toDateString();
+}
+
+// Calendar view switching
+function switchCalendarView(view) {
+    calendarView = view;
+    
+    // Update toggle buttons
+    document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    generateCalendar();
+    updateWorkoutSections();
+}
+
+// Date selection functions
+function selectDateFromMonth(year, month, day) {
+    selectedDate = new Date(year, month - 1, day);
+    currentDate = new Date(year, month - 1, 1);
+    generateCalendar();
+    updateWorkoutSections();
+}
+
+function selectDateFromWeek(dateString) {
+    selectedDate = new Date(dateString);
+    generateCalendar();
+    updateWorkoutSections();
+}
+
+// Navigation functions
+function previousPeriod() {
+    switch(calendarView) {
+        case 'day':
+            selectedDate.setDate(selectedDate.getDate() - 1);
+            break;
+        case 'week':
+            selectedDate.setDate(selectedDate.getDate() - 7);
+            break;
+        case 'month':
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            break;
+    }
+    generateCalendar();
+    updateWorkoutSections();
+}
+
+function nextPeriod() {
+    switch(calendarView) {
+        case 'day':
+            selectedDate.setDate(selectedDate.getDate() + 1);
+            break;
+        case 'week':
+            selectedDate.setDate(selectedDate.getDate() + 7);
+            break;
+        case 'month':
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            break;
+    }
+    generateCalendar();
+    updateWorkoutSections();
+}
+
+// Workout section management
+function updateWorkoutSections() {
+    const workoutTodaySection = document.getElementById('workoutTodaySection');
+    const selectedDateSection = document.getElementById('selectedDateSection');
+    
+    if (isToday(selectedDate)) {
+        workoutTodaySection.style.display = 'block';
+        selectedDateSection.style.display = 'none';
+    } else {
+        workoutTodaySection.style.display = 'none';
+        selectedDateSection.style.display = 'block';
+        document.getElementById('selectedDateTitle').textContent = `Workout for ${selectedDate.toLocaleDateString()}`;
     }
 }
 
-function previousMonth() {
-    currentDate.setMonth(currentDate.getMonth() - 1);
-    generateCalendar();
+function toggleWorkoutToday() {
+    showWorkoutToday = !showWorkoutToday;
+    const programSelection = document.getElementById('programSelection');
+    programSelection.style.display = showWorkoutToday ? 'block' : 'none';
 }
 
-function nextMonth() {
-    currentDate.setMonth(currentDate.getMonth() + 1);
-    generateCalendar();
+function showProgramSelectionModal() {
+    if (workoutPrograms.length === 0) {
+        alert('No workout programs available. Please add programs first.');
+        return;
+    }
+    
+    const dateString = selectedDate.toISOString().split('T')[0];
+    showProgramSelection(dateString);
+}
+
+function showWorkoutDetails(dateString) {
+    const workout = scheduledWorkouts[dateString];
+    if (workout) {
+        showWorkoutProgramDetails(workout.id, dateString);
+    }
 }
 
 // Utility functions
@@ -1277,7 +1571,8 @@ async function loadExerciseTrackingData(exerciseId, dateString) {
 async function saveExerciseTracking(exerciseId, dateString, programId) {
     try {
         const trackingData = {};
-        const inputs = document.querySelectorAll('.exercise-tracking-modal input');
+        const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+        const inputs = exerciseCard.querySelectorAll('input[data-set]');
         
         inputs.forEach(input => {
             const set = input.getAttribute('data-set');
@@ -1290,21 +1585,85 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             }
         });
         
-        // Save to localStorage for now
+        // Save to database
+        const { error } = await supabase
+            .from('user_workouts')
+            .update({
+                workout_tracking: {
+                    ...trackingData,
+                    [exerciseId]: {
+                        date: dateString,
+                        sets: trackingData
+                    }
+                },
+                last_updated: new Date().toISOString()
+            })
+            .eq('workout_program_id', programId)
+            .eq('user_id', 'default_user');
+        
+        if (error) throw error;
+        
+        // Also save to localStorage as backup
         const key = `tracking_${exerciseId}_${dateString}`;
         localStorage.setItem(key, JSON.stringify(trackingData));
         
-        // You can also save to your database here
-        // await saveToDatabase(exerciseId, dateString, trackingData);
-        
         showSuccess('Progress saved successfully!');
         
-        // Close the modal
-        const modal = document.querySelector('.exercise-tracking-modal').closest('.modal');
-        modal.remove();
+        // Update the save button to show saved state
+        const saveBtn = exerciseCard.querySelector('.save-tracking-btn');
+        if (saveBtn) {
+            saveBtn.textContent = 'Saved!';
+            saveBtn.classList.add('saved');
+            setTimeout(() => {
+                saveBtn.textContent = 'Save Progress';
+                saveBtn.classList.remove('saved');
+            }, 2000);
+        }
         
     } catch (error) {
         console.error('Error saving tracking data:', error);
+        showError('Failed to save progress');
+    }
+}
+
+// Save all progress for the current workout
+async function saveAllProgress() {
+    try {
+        const exerciseCards = document.querySelectorAll('.exercise-tracking-card');
+        let savedCount = 0;
+        
+        for (const card of exerciseCards) {
+            const exerciseId = card.getAttribute('data-exercise-id');
+            const inputs = card.querySelectorAll('input[data-set]');
+            const trackingData = {};
+            
+            inputs.forEach(input => {
+                const set = input.getAttribute('data-set');
+                const field = input.getAttribute('data-field');
+                const value = input.value;
+                
+                if (set && field && value) {
+                    if (!trackingData[set]) trackingData[set] = {};
+                    trackingData[set][field] = value;
+                }
+            });
+            
+            if (Object.keys(trackingData).length > 0) {
+                // Save individual exercise data
+                const key = `tracking_${exerciseId}_${currentParams.dateString}`;
+                localStorage.setItem(key, JSON.stringify(trackingData));
+                savedCount++;
+            }
+        }
+        
+        if (savedCount > 0) {
+            showSuccess(`Saved progress for ${savedCount} exercises!`);
+        } else {
+            showError('No data to save. Please fill in some exercise details.');
+        }
+        
+    } catch (error) {
+        console.error('Error saving all progress:', error);
         showError('Failed to save progress');
     }
 }

@@ -681,6 +681,169 @@ input:checked + .slider:before {
     background: rgba(255, 165, 0, 0.3);
 }
 
+/* Exercise Selection Section */
+.exercise-selection-section {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.exercise-selection-section h3 {
+    margin-bottom: 15px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.exercise-select-container {
+    margin-bottom: 20px;
+}
+
+.exercise-select {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.exercise-select:focus {
+    outline: none;
+    border-color: #007AFF;
+    background: rgba(255,255,255,0.1);
+}
+
+.exercise-select option {
+    background: #1a1a1a;
+    color: #ffffff;
+}
+
+/* Exercise Tracking Section */
+.exercise-tracking-section {
+    margin-top: 20px;
+}
+
+.exercise-tracking-card {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.exercise-tracking-card h4 {
+    color: #007AFF;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.exercise-tracking-card p {
+    color: rgba(255,255,255,0.8);
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+}
+
+.sets-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.set-input-group {
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.set-input-group h5 {
+    color: #ffffff;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.set-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.input-group label {
+    color: rgba(255,255,255,0.8);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.set-input {
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.set-input:focus {
+    outline: none;
+    border-color: #007AFF;
+    background: rgba(255,255,255,0.1);
+}
+
+.set-input::placeholder {
+    color: rgba(255,255,255,0.5);
+}
+
+.tracking-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+}
+
+.tracking-actions .btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+}
+
+.tracking-actions .btn.saved {
+    background: #28a745;
+    border-color: #28a745;
+    cursor: not-allowed;
+}
+
+.tracking-actions .btn.saved:hover {
+    background: #28a745;
+    border-color: #28a745;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .set-inputs {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .tracking-actions {
+        flex-direction: column;
+    }
+    
+    .tracking-actions .btn {
+        width: 100%;
+    }
+}
+
 /* Loading States */
 .loading {
     text-align: center;

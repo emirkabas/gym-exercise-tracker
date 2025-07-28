@@ -948,8 +948,8 @@ function selectWorkoutProgram(programId, dateString) {
         // Regenerate calendar to show the new workout
         generateCalendar();
         
-        // Navigate to workout details
-        showWorkoutProgramDetails(programId, dateString);
+        // Show exercise selection for this program
+        showExerciseSelection(programId, dateString);
     }
 }
 
@@ -1332,6 +1332,191 @@ function showWorkoutDetails(dateString) {
     if (workout) {
         showWorkoutProgramDetails(workout.id, dateString);
     }
+}
+
+// Exercise selection and tracking functions
+function showExerciseSelection(programId, dateString) {
+    const program = workoutPrograms.find(p => p.id == programId);
+    if (!program) return;
+    
+    // Get exercises for this program
+    const programExercises = getProgramExercises(program.name);
+    
+    // Create exercise selection section
+    const exerciseSection = document.createElement('div');
+    exerciseSection.id = 'exerciseSelectionSection';
+    exerciseSection.className = 'exercise-selection-section';
+    exerciseSection.innerHTML = `
+        <h3>Select Exercise</h3>
+        <div class="exercise-select-container">
+            <select id="exerciseSelect" class="exercise-select" onchange="onExerciseSelected('${programId}', '${dateString}')">
+                <option value="">Choose an exercise...</option>
+                ${programExercises.map(exercise => `
+                    <option value="${exercise.id}">${exercise.name}</option>
+                `).join('')}
+            </select>
+        </div>
+        <div id="exerciseTrackingSection" class="exercise-tracking-section" style="display: none;">
+            <!-- Exercise tracking will be loaded here -->
+        </div>
+    `;
+    
+    // Add to the page
+    const container = document.querySelector('.container');
+    const existingSection = document.getElementById('exerciseSelectionSection');
+    if (existingSection) {
+        existingSection.remove();
+    }
+    container.appendChild(exerciseSection);
+}
+
+function getProgramExercises(programName) {
+    // Mock exercises based on program name
+    switch(programName) {
+        case 'Cardio & Strength Mix':
+            return [
+                { id: 1, name: 'Burpees', sets: 3, reps: 15 },
+                { id: 2, name: 'Push-ups', sets: 3, reps: 12 },
+                { id: 3, name: 'Squats', sets: 3, reps: 20 },
+                { id: 4, name: 'Mountain Climbers', sets: 3, reps: 30 },
+                { id: 5, name: 'Plank', sets: 3, reps: 45 }
+            ];
+        case 'Beginner Full Body':
+            return [
+                { id: 6, name: 'Wall Push-ups', sets: 3, reps: 10 },
+                { id: 7, name: 'Assisted Squats', sets: 3, reps: 15 },
+                { id: 8, name: 'Knee Plank', sets: 3, reps: 30 },
+                { id: 9, name: 'Marching in Place', sets: 3, reps: 60 }
+            ];
+        case 'Advanced Power':
+            return [
+                { id: 10, name: 'Power Clean', sets: 5, reps: 3 },
+                { id: 11, name: 'Snatch', sets: 4, reps: 2 },
+                { id: 12, name: 'Box Jumps', sets: 4, reps: 8 },
+                { id: 13, name: 'Push Press', sets: 4, reps: 5 },
+                { id: 14, name: 'Kettlebell Swings', sets: 3, reps: 15 }
+            ];
+        default:
+            return [
+                { id: 15, name: 'Push-ups', sets: 3, reps: 10 },
+                { id: 16, name: 'Squats', sets: 3, reps: 15 },
+                { id: 17, name: 'Plank', sets: 3, reps: 30 }
+            ];
+    }
+}
+
+function onExerciseSelected(programId, dateString) {
+    const exerciseSelect = document.getElementById('exerciseSelect');
+    const exerciseId = exerciseSelect.value;
+    
+    if (!exerciseId) {
+        document.getElementById('exerciseTrackingSection').style.display = 'none';
+        return;
+    }
+    
+    const program = workoutPrograms.find(p => p.id == programId);
+    const programExercises = getProgramExercises(program.name);
+    const selectedExercise = programExercises.find(e => e.id == parseInt(exerciseId));
+    
+    if (selectedExercise) {
+        showExerciseTracking(selectedExercise, programId, dateString);
+    }
+}
+
+function showExerciseTracking(exercise, programId, dateString) {
+    const trackingSection = document.getElementById('exerciseTrackingSection');
+    
+    trackingSection.innerHTML = `
+        <div class="exercise-tracking-card">
+            <h4>${exercise.name}</h4>
+            <p>Target: ${exercise.sets} sets × ${exercise.reps} reps</p>
+            
+            <div class="sets-container">
+                ${generateSetInputs(exercise.sets, exercise.reps)}
+            </div>
+            
+            <div class="tracking-actions">
+                <button class="btn btn-primary" onclick="saveExerciseProgress('${exercise.id}', '${programId}', '${dateString}')">
+                    Save Progress
+                </button>
+                <button class="btn btn-secondary" onclick="resetExerciseTracking()">
+                    Reset
+                </button>
+            </div>
+        </div>
+    `;
+    
+    trackingSection.style.display = 'block';
+}
+
+function generateSetInputs(sets, targetReps) {
+    let html = '';
+    for (let i = 1; i <= sets; i++) {
+        html += `
+            <div class="set-input-group">
+                <h5>Set ${i}</h5>
+                <div class="set-inputs">
+                    <div class="input-group">
+                        <label>Reps:</label>
+                        <input type="number" id="reps_${i}" class="set-input" placeholder="${targetReps}" min="0" max="100">
+                    </div>
+                    <div class="input-group">
+                        <label>Weight (lbs):</label>
+                        <input type="number" id="weight_${i}" class="set-input" placeholder="0" min="0" max="500">
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    return html;
+}
+
+function saveExerciseProgress(exerciseId, programId, dateString) {
+    const sets = getProgramExercises(selectedProgram).find(e => e.id == parseInt(exerciseId)).sets;
+    const progress = {
+        exerciseId: exerciseId,
+        programId: programId,
+        date: dateString,
+        sets: []
+    };
+    
+    for (let i = 1; i <= sets; i++) {
+        const reps = document.getElementById(`reps_${i}`).value;
+        const weight = document.getElementById(`weight_${i}`).value;
+        
+        if (reps || weight) {
+            progress.sets.push({
+                setNumber: i,
+                reps: parseInt(reps) || 0,
+                weight: parseInt(weight) || 0,
+                completed: true
+            });
+        }
+    }
+    
+    // Save to localStorage for now (in a real app, this would go to the database)
+    const key = `exercise_progress_${dateString}_${exerciseId}`;
+    localStorage.setItem(key, JSON.stringify(progress));
+    
+    showSuccess('Exercise progress saved successfully!');
+    
+    // Update the save button to show it's saved
+    const saveBtn = document.querySelector('.tracking-actions .btn-primary');
+    saveBtn.textContent = 'Saved ✓';
+    saveBtn.classList.add('saved');
+    saveBtn.disabled = true;
+}
+
+function resetExerciseTracking() {
+    const inputs = document.querySelectorAll('.set-input');
+    inputs.forEach(input => {
+        input.value = '';
+    });
+    
+    const saveBtn = document.querySelector('.tracking-actions .btn-primary');
+    saveBtn.textContent = 'Save Progress';
+    saveBtn.classList.remove('saved');
+    saveBtn.disabled = false;
 }
 
 // Utility functions

@@ -632,6 +632,7 @@ function displayWorkoutPrograms(programs) {
             <div class="program-actions">
                 <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
                 <button class="btn btn-outline" onclick="editWorkoutProgram(${program.id})">Edit</button>
+                <button class="btn btn-primary" onclick="showAddExerciseModal(${program.id})">Add Exercise</button>
             </div>
         </div>
     `).join('');
@@ -1518,18 +1519,22 @@ function showExerciseTracking(exercise, programId, dateString) {
 }
 
 function setupWeightAutoFill() {
-    const weightInputs = document.querySelectorAll('.weight-input');
+    const weightInputs = document.querySelectorAll('input[data-set]');
+    console.log('Found weight inputs:', weightInputs.length);
     
     weightInputs.forEach((input, index) => {
         input.addEventListener('input', function() {
             const weight = this.value;
             const setNumber = parseInt(this.getAttribute('data-set'));
+            console.log('Weight input changed:', setNumber, weight);
             
             // If this is the first set and weight is entered, auto-fill other sets
             if (setNumber === 1 && weight && weight > 0) {
                 weightInputs.forEach((otherInput, otherIndex) => {
-                    if (otherIndex > 0) { // Skip the first input (already filled)
+                    const otherSetNumber = parseInt(otherInput.getAttribute('data-set'));
+                    if (otherSetNumber > 1) { // Skip the first input (already filled)
                         otherInput.value = weight;
+                        console.log('Auto-filled set', otherSetNumber, 'with weight', weight);
                     }
                 });
             }
@@ -1590,25 +1595,41 @@ function saveExerciseProgress(exerciseId, programId, dateString) {
         };
         
         let hasData = false;
+        let totalSets = 0;
+        
         for (let i = 1; i <= sets; i++) {
             const repsElement = document.getElementById(`reps_${i}`);
             const weightElement = document.getElementById(`weight_${i}`);
             
+            console.log(`Checking set ${i}:`, { repsElement: !!repsElement, weightElement: !!weightElement });
+            
             if (repsElement && weightElement) {
-                const reps = repsElement.value;
-                const weight = weightElement.value;
+                const reps = repsElement.value.trim();
+                const weight = weightElement.value.trim();
                 
-                if (reps || weight) {
-                    progress.sets.push({
+                console.log(`Set ${i} values:`, { reps, weight });
+                
+                // Check if either reps or weight has a value
+                if (reps !== '' || weight !== '') {
+                    const setData = {
                         setNumber: i,
-                        reps: parseInt(reps) || 0,
-                        weight: parseInt(weight) || 0,
+                        reps: reps !== '' ? parseInt(reps) : 0,
+                        weight: weight !== '' ? parseInt(weight) : 0,
                         completed: true
-                    });
+                    };
+                    
+                    progress.sets.push(setData);
                     hasData = true;
+                    totalSets++;
+                    console.log(`Set ${i} data:`, setData);
                 }
+            } else {
+                console.error(`Missing elements for set ${i}:`, { repsElement: !!repsElement, weightElement: !!weightElement });
             }
         }
+        
+        console.log('Total sets with data:', totalSets);
+        console.log('Progress object:', progress);
         
         if (!hasData) {
             showError('Please enter at least one set of reps or weight');
@@ -1619,7 +1640,7 @@ function saveExerciseProgress(exerciseId, programId, dateString) {
         const key = `exercise_progress_${dateString}_${exerciseId}`;
         localStorage.setItem(key, JSON.stringify(progress));
         
-        console.log('Progress saved:', progress);
+        console.log('Progress saved to localStorage with key:', key);
         showSuccess('Exercise progress saved successfully!');
         
         // Update the save button to show it's saved
@@ -2247,4 +2268,198 @@ function confirmDeleteProgram(programId, programName) {
     displayWorkoutPrograms(workoutPrograms);
     
     showSuccess(`Workout program "${programName}" deleted successfully!`);
+}
+
+// Exercise Management for Workout Programs
+
+function showAddExerciseModal(programId) {
+    const program = workoutPrograms.find(p => p.id === programId);
+    if (!program) {
+        showError('Program not found');
+        return;
+    }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content exercise-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Add Exercise to "${program.name}"</h2>
+            
+            <div class="exercise-search-section">
+                <div class="form-group">
+                    <label for="exerciseSearch">Search Exercises:</label>
+                    <input type="text" id="exerciseSearch" placeholder="Type to search exercises..." oninput="filterExerciseList()">
+                </div>
+                
+                <div class="form-group">
+                    <label for="muscleGroupFilter">Filter by Muscle Group:</label>
+                    <select id="muscleGroupFilter" onchange="filterExerciseList()">
+                        <option value="">All Muscle Groups</option>
+                        ${muscleGroups.map(group => `<option value="${group.id}">${group.name}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="exercise-list-container">
+                <div id="exerciseList" class="exercise-list">
+                    ${exercises.map(exercise => `
+                        <div class="exercise-item" data-exercise-id="${exercise.id}" data-muscle-group="${exercise.muscle_group_id}">
+                            <div class="exercise-info">
+                                <h4>${exercise.name}</h4>
+                                <p><strong>Muscle Group:</strong> ${exercise.muscle_group_name}</p>
+                                <p><strong>Difficulty:</strong> ${exercise.difficulty_level || 'Not specified'}</p>
+                                <p><strong>Equipment:</strong> ${exercise.equipment || 'None required'}</p>
+                            </div>
+                            <div class="exercise-config">
+                                <div class="form-group">
+                                    <label>Sets:</label>
+                                    <input type="number" class="exercise-sets" min="1" max="10" value="3" placeholder="3">
+                                </div>
+                                <div class="form-group">
+                                    <label>Reps:</label>
+                                    <input type="number" class="exercise-reps" min="1" max="100" value="10" placeholder="10">
+                                </div>
+                                <button class="btn btn-primary" onclick="addExerciseToProgram(${programId}, ${exercise.id}, this)">
+                                    Add to Program
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal(this)">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+function filterExerciseList() {
+    const searchTerm = document.getElementById('exerciseSearch').value.toLowerCase();
+    const muscleGroupFilter = document.getElementById('muscleGroupFilter').value;
+    const exerciseItems = document.querySelectorAll('.exercise-item');
+    
+    exerciseItems.forEach(item => {
+        const exerciseName = item.querySelector('h4').textContent.toLowerCase();
+        const muscleGroup = item.getAttribute('data-muscle-group');
+        const matchesSearch = exerciseName.includes(searchTerm);
+        const matchesMuscleGroup = !muscleGroupFilter || muscleGroup === muscleGroupFilter;
+        
+        if (matchesSearch && matchesMuscleGroup) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function addExerciseToProgram(programId, exerciseId, button) {
+    const exerciseItem = button.closest('.exercise-item');
+    const setsInput = exerciseItem.querySelector('.exercise-sets');
+    const repsInput = exerciseItem.querySelector('.exercise-reps');
+    
+    const sets = parseInt(setsInput.value) || 3;
+    const reps = parseInt(repsInput.value) || 10;
+    
+    const exercise = exercises.find(e => e.id === exerciseId);
+    const program = workoutPrograms.find(p => p.id === programId);
+    
+    if (!exercise || !program) {
+        showError('Exercise or program not found');
+        return;
+    }
+    
+    // Initialize program exercises if not exists
+    if (!program.exercises) {
+        program.exercises = [];
+    }
+    
+    // Check if exercise already exists in program
+    const existingExercise = program.exercises.find(e => e.exercise_id === exerciseId);
+    if (existingExercise) {
+        showError('Exercise already exists in this program');
+        return;
+    }
+    
+    // Add exercise to program
+    const programExercise = {
+        exercise_id: exerciseId,
+        exercise_name: exercise.name,
+        muscle_group: exercise.muscle_group_name,
+        sets: sets,
+        reps: reps,
+        added_at: new Date().toISOString()
+    };
+    
+    program.exercises.push(programExercise);
+    
+    // Save to localStorage
+    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
+    
+    // Update button to show added
+    button.textContent = 'Added ✓';
+    button.classList.add('added');
+    button.disabled = true;
+    
+    showSuccess(`"${exercise.name}" added to "${program.name}"!`);
+    
+    // Reset button after 2 seconds
+    setTimeout(() => {
+        button.textContent = 'Add to Program';
+        button.classList.remove('added');
+        button.disabled = false;
+    }, 2000);
+}
+
+// Update getProgramExercises to use program exercises if available
+function getProgramExercises(programName) {
+    // First check if we have a program with exercises
+    const program = workoutPrograms.find(p => p.name === programName);
+    if (program && program.exercises && program.exercises.length > 0) {
+        return program.exercises.map(ex => ({
+            id: ex.exercise_id,
+            name: ex.exercise_name,
+            sets: ex.sets,
+            reps: ex.reps,
+            muscleGroup: ex.muscle_group
+        }));
+    }
+    
+    // Fallback to mock exercises based on program name
+    switch(programName) {
+        case 'Cardio & Strength Mix':
+            return [
+                { id: 1, name: 'Burpees', sets: 3, reps: 15 },
+                { id: 2, name: 'Push-ups', sets: 3, reps: 12 },
+                { id: 3, name: 'Squats', sets: 3, reps: 20 },
+                { id: 4, name: 'Mountain Climbers', sets: 3, reps: 30 },
+                { id: 5, name: 'Plank', sets: 3, reps: 45 }
+            ];
+        case 'Beginner Full Body':
+            return [
+                { id: 6, name: 'Wall Push-ups', sets: 3, reps: 10 },
+                { id: 7, name: 'Assisted Squats', sets: 3, reps: 15 },
+                { id: 8, name: 'Knee Plank', sets: 3, reps: 30 },
+                { id: 9, name: 'Marching in Place', sets: 3, reps: 60 }
+            ];
+        case 'Advanced Power':
+            return [
+                { id: 10, name: 'Power Clean', sets: 5, reps: 3 },
+                { id: 11, name: 'Snatch', sets: 4, reps: 2 },
+                { id: 12, name: 'Box Jumps', sets: 4, reps: 8 },
+                { id: 13, name: 'Push Press', sets: 4, reps: 5 },
+                { id: 14, name: 'Kettlebell Swings', sets: 3, reps: 15 }
+            ];
+        default:
+            return [
+                { id: 15, name: 'Push-ups', sets: 3, reps: 10 },
+                { id: 16, name: 'Squats', sets: 3, reps: 15 },
+                { id: 17, name: 'Plank', sets: 3, reps: 30 }
+            ];
+    }
 } // Force redeploy - Mon Jul 28 14:45:08 CEST 2025

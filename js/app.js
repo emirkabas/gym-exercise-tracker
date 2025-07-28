@@ -493,18 +493,41 @@ async function loadWorkoutPrograms() {
         if (error) throw error;
         
         // Load database programs
-        workoutPrograms = data || [];
+        const databasePrograms = data || [];
         
         // Load user-created programs from localStorage
         const userPrograms = localStorage.getItem('workoutPrograms');
+        let localStoragePrograms = [];
+        
         if (userPrograms) {
             try {
-                const parsedUserPrograms = JSON.parse(userPrograms);
-                workoutPrograms = [...workoutPrograms, ...parsedUserPrograms];
+                localStoragePrograms = JSON.parse(userPrograms);
             } catch (e) {
                 console.error('Error parsing user programs:', e);
+                localStorage.removeItem('workoutPrograms'); // Clear corrupted data
             }
         }
+        
+        // Load deleted programs list from localStorage
+        const deletedPrograms = localStorage.getItem('deletedPrograms');
+        let deletedProgramIds = [];
+        
+        if (deletedPrograms) {
+            try {
+                deletedProgramIds = JSON.parse(deletedPrograms);
+            } catch (e) {
+                console.error('Error parsing deleted programs:', e);
+                localStorage.removeItem('deletedPrograms');
+            }
+        }
+        
+        // Filter out deleted programs from database
+        const activeDatabasePrograms = databasePrograms.filter(program => 
+            !deletedProgramIds.includes(program.id)
+        );
+        
+        // Combine active database programs with localStorage programs
+        workoutPrograms = [...activeDatabasePrograms, ...localStoragePrograms];
         
         if (currentPage === 'workout-programs') {
             displayWorkoutPrograms(workoutPrograms);
@@ -1569,22 +1592,24 @@ function generateSetInputs(sets, targetReps) {
 
 function saveExerciseProgress(exerciseId, programId, dateString) {
     try {
-        console.log('=== SAVE PROGRESS DEBUG ===');
-        console.log('Parameters:', { exerciseId, programId, dateString });
+        console.log('=== SAVE PROGRESS START ===');
         
-        // Find all set input elements directly
-        const allInputs = document.querySelectorAll('input[id^="reps_"], input[id^="weight_"]');
-        console.log('Found inputs:', allInputs.length);
+        // Simple approach: find all inputs in the current exercise tracking section
+        const trackingSection = document.querySelector('.exercise-tracking-card');
+        if (!trackingSection) {
+            showError('Exercise tracking section not found');
+            return;
+        }
         
-        // Get the exercise name from the current tracking card
-        const trackingCard = document.querySelector('.exercise-tracking-card');
-        const exerciseName = trackingCard ? trackingCard.querySelector('h4').textContent : 'Unknown Exercise';
+        // Get exercise name
+        const exerciseName = trackingSection.querySelector('h4').textContent;
         console.log('Exercise name:', exerciseName);
         
-        // Count how many sets we have
-        const repsInputs = document.querySelectorAll('input[id^="reps_"]');
-        const numSets = repsInputs.length;
-        console.log('Number of sets:', numSets);
+        // Find all input fields within this tracking section
+        const repsInputs = trackingSection.querySelectorAll('input[id^="reps_"]');
+        const weightInputs = trackingSection.querySelectorAll('input[id^="weight_"]');
+        
+        console.log('Found inputs:', { reps: repsInputs.length, weight: weightInputs.length });
         
         const progress = {
             exerciseId: exerciseId,
@@ -1596,40 +1621,31 @@ function saveExerciseProgress(exerciseId, programId, dateString) {
         
         let hasData = false;
         
-        // Collect data from all sets
-        for (let i = 1; i <= numSets; i++) {
-            const repsElement = document.getElementById(`reps_${i}`);
-            const weightElement = document.getElementById(`weight_${i}`);
+        // Process each set
+        for (let i = 0; i < repsInputs.length; i++) {
+            const repsInput = repsInputs[i];
+            const weightInput = weightInputs[i];
+            const setNumber = i + 1;
             
-            console.log(`Set ${i} elements:`, { 
-                repsElement: repsElement ? 'found' : 'missing', 
-                weightElement: weightElement ? 'found' : 'missing' 
-            });
+            const reps = repsInput.value.trim();
+            const weight = weightInput.value.trim();
             
-            if (repsElement && weightElement) {
-                const reps = repsElement.value.trim();
-                const weight = weightElement.value.trim();
+            console.log(`Set ${setNumber}:`, { reps, weight });
+            
+            // If either reps or weight has a value, save this set
+            if (reps !== '' || weight !== '') {
+                const setData = {
+                    setNumber: setNumber,
+                    reps: reps !== '' ? parseInt(reps) : 0,
+                    weight: weight !== '' ? parseInt(weight) : 0,
+                    completed: true
+                };
                 
-                console.log(`Set ${i} values:`, { reps, weight });
-                
-                // Check if either reps or weight has a value
-                if (reps !== '' || weight !== '') {
-                    const setData = {
-                        setNumber: i,
-                        reps: reps !== '' ? parseInt(reps) : 0,
-                        weight: weight !== '' ? parseInt(weight) : 0,
-                        completed: true
-                    };
-                    
-                    progress.sets.push(setData);
-                    hasData = true;
-                    console.log(`Set ${i} data added:`, setData);
-                }
+                progress.sets.push(setData);
+                hasData = true;
+                console.log(`Set ${setNumber} saved:`, setData);
             }
         }
-        
-        console.log('Total sets with data:', progress.sets.length);
-        console.log('Final progress object:', progress);
         
         if (!hasData) {
             showError('Please enter at least one set of reps or weight');
@@ -1640,11 +1656,11 @@ function saveExerciseProgress(exerciseId, programId, dateString) {
         const key = `exercise_progress_${dateString}_${exerciseId}`;
         localStorage.setItem(key, JSON.stringify(progress));
         
-        console.log('Progress saved to localStorage with key:', key);
+        console.log('Progress saved successfully:', progress);
         showSuccess('Exercise progress saved successfully!');
         
-        // Update the save button to show it's saved
-        const saveBtn = document.querySelector('.tracking-actions .btn-primary');
+        // Update button
+        const saveBtn = trackingSection.querySelector('.btn-primary');
         if (saveBtn) {
             saveBtn.textContent = 'Saved ✓';
             saveBtn.classList.add('saved');
@@ -1705,6 +1721,13 @@ function testSaveFunction(exerciseId, programId, dateString) {
     console.log('Retrieved test data:', retrieved);
     
     showSuccess('Test save completed - check console for details');
+}
+
+// Utility function to clear deleted programs (for testing)
+function clearDeletedPrograms() {
+    localStorage.removeItem('deletedPrograms');
+    showSuccess('Deleted programs list cleared');
+    console.log('Deleted programs list cleared');
 }
 
 function resetExerciseTracking() {
@@ -2307,17 +2330,59 @@ function deleteWorkoutProgram(programId, programName) {
 }
 
 function confirmDeleteProgram(programId, programName) {
-    // Remove from workout programs array
-    workoutPrograms = workoutPrograms.filter(p => p.id !== programId);
-    
-    // Save to localStorage
-    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
-    
-    // Close modal and refresh display
-    closeModal(document.querySelector('.modal'));
-    displayWorkoutPrograms(workoutPrograms);
-    
-    showSuccess(`Workout program "${programName}" deleted successfully!`);
+    try {
+        // Check if this is a database program (has a numeric ID) or localStorage program
+        const isDatabaseProgram = typeof programId === 'number' || (typeof programId === 'string' && !isNaN(programId) && programId < 1000000);
+        
+        if (isDatabaseProgram) {
+            // This is a database program - add to deleted list
+            const deletedPrograms = localStorage.getItem('deletedPrograms');
+            let deletedProgramIds = [];
+            
+            if (deletedPrograms) {
+                try {
+                    deletedProgramIds = JSON.parse(deletedPrograms);
+                } catch (e) {
+                    console.error('Error parsing deleted programs:', e);
+                }
+            }
+            
+            // Add to deleted list if not already there
+            if (!deletedProgramIds.includes(programId)) {
+                deletedProgramIds.push(programId);
+                localStorage.setItem('deletedPrograms', JSON.stringify(deletedProgramIds));
+            }
+            
+            console.log('Database program deleted, added to deleted list:', programId);
+        } else {
+            // This is a localStorage program - remove from localStorage
+            const userPrograms = localStorage.getItem('workoutPrograms');
+            if (userPrograms) {
+                try {
+                    let localStoragePrograms = JSON.parse(userPrograms);
+                    localStoragePrograms = localStoragePrograms.filter(p => p.id !== programId);
+                    localStorage.setItem('workoutPrograms', JSON.stringify(localStoragePrograms));
+                } catch (e) {
+                    console.error('Error updating localStorage programs:', e);
+                }
+            }
+            
+            console.log('localStorage program deleted:', programId);
+        }
+        
+        // Remove from current display
+        workoutPrograms = workoutPrograms.filter(p => p.id !== programId);
+        
+        // Close modal and refresh display
+        closeModal(document.querySelector('.modal'));
+        displayWorkoutPrograms(workoutPrograms);
+        
+        showSuccess(`Workout program "${programName}" deleted successfully!`);
+        
+    } catch (error) {
+        console.error('Error deleting program:', error);
+        showError('Failed to delete program');
+    }
 }
 
 // Exercise Management for Workout Programs

@@ -1487,6 +1487,31 @@ function showExerciseTracking(exercise, programId, dateString) {
     
     trackingSection.style.display = 'block';
     console.log('Exercise tracking section displayed');
+    
+    // Add event listeners for auto-fill weight functionality
+    setTimeout(() => {
+        setupWeightAutoFill();
+    }, 100);
+}
+
+function setupWeightAutoFill() {
+    const weightInputs = document.querySelectorAll('.weight-input');
+    
+    weightInputs.forEach((input, index) => {
+        input.addEventListener('input', function() {
+            const weight = this.value;
+            const setNumber = parseInt(this.getAttribute('data-set'));
+            
+            // If this is the first set and weight is entered, auto-fill other sets
+            if (setNumber === 1 && weight && weight > 0) {
+                weightInputs.forEach((otherInput, otherIndex) => {
+                    if (otherIndex > 0) { // Skip the first input (already filled)
+                        otherInput.value = weight;
+                    }
+                });
+            }
+        });
+    });
 }
 
 function generateSetInputs(sets, targetReps) {
@@ -1502,7 +1527,7 @@ function generateSetInputs(sets, targetReps) {
                     </div>
                     <div class="input-group">
                         <label>Weight (lbs):</label>
-                        <input type="number" id="weight_${i}" class="set-input" placeholder="0" min="0" max="500">
+                        <input type="number" id="weight_${i}" class="set-input weight-input" placeholder="0" min="0" max="500" data-set="${i}">
                     </div>
                 </div>
             </div>
@@ -1512,73 +1537,79 @@ function generateSetInputs(sets, targetReps) {
 }
 
 function saveExerciseProgress(exerciseId, programId, dateString) {
-    console.log('Saving exercise progress:', exerciseId, programId, dateString);
-    
-    // Get the program name to find exercises
-    const program = workoutPrograms.find(p => p.id == programId);
-    if (!program) {
-        console.error('Program not found for saving progress');
-        showError('Program not found');
-        return;
-    }
-    
-    const programExercises = getProgramExercises(program.name);
-    const exercise = programExercises.find(e => e.id == parseInt(exerciseId));
-    
-    if (!exercise) {
-        console.error('Exercise not found for saving progress');
-        showError('Exercise not found');
-        return;
-    }
-    
-    const sets = exercise.sets;
-    const progress = {
-        exerciseId: exerciseId,
-        programId: programId,
-        date: dateString,
-        exerciseName: exercise.name,
-        sets: []
-    };
-    
-    let hasData = false;
-    for (let i = 1; i <= sets; i++) {
-        const repsElement = document.getElementById(`reps_${i}`);
-        const weightElement = document.getElementById(`weight_${i}`);
+    try {
+        console.log('Saving exercise progress:', exerciseId, programId, dateString);
         
-        if (repsElement && weightElement) {
-            const reps = repsElement.value;
-            const weight = weightElement.value;
+        // Get the program name to find exercises
+        const program = workoutPrograms.find(p => p.id == programId);
+        if (!program) {
+            console.error('Program not found for saving progress');
+            showError('Program not found');
+            return;
+        }
+        
+        const programExercises = getProgramExercises(program.name);
+        const exercise = programExercises.find(e => e.id == parseInt(exerciseId));
+        
+        if (!exercise) {
+            console.error('Exercise not found for saving progress');
+            showError('Exercise not found');
+            return;
+        }
+        
+        const sets = exercise.sets;
+        const progress = {
+            exerciseId: exerciseId,
+            programId: programId,
+            date: dateString,
+            exerciseName: exercise.name,
+            sets: []
+        };
+        
+        let hasData = false;
+        for (let i = 1; i <= sets; i++) {
+            const repsElement = document.getElementById(`reps_${i}`);
+            const weightElement = document.getElementById(`weight_${i}`);
             
-            if (reps || weight) {
-                progress.sets.push({
-                    setNumber: i,
-                    reps: parseInt(reps) || 0,
-                    weight: parseInt(weight) || 0,
-                    completed: true
-                });
-                hasData = true;
+            if (repsElement && weightElement) {
+                const reps = repsElement.value;
+                const weight = weightElement.value;
+                
+                if (reps || weight) {
+                    progress.sets.push({
+                        setNumber: i,
+                        reps: parseInt(reps) || 0,
+                        weight: parseInt(weight) || 0,
+                        completed: true
+                    });
+                    hasData = true;
+                }
             }
         }
-    }
-    
-    if (!hasData) {
-        showError('Please enter at least one set of reps or weight');
-        return;
-    }
-    
-    // Save to localStorage for now (in a real app, this would go to the database)
-    const key = `exercise_progress_${dateString}_${exerciseId}`;
-    localStorage.setItem(key, JSON.stringify(progress));
-    
-    console.log('Progress saved:', progress);
-    showSuccess('Exercise progress saved successfully!');
-    
-    // Update the save button to show it's saved
-    const saveBtn = document.querySelector('.tracking-actions .btn-primary');
-    if (saveBtn) {
-        saveBtn.textContent = 'Saved ✓';
-        saveBtn.classList.add('saved');
-        saveBtn.disabled = true;
+        
+        if (!hasData) {
+            showError('Please enter at least one set of reps or weight');
+            return;
+        }
+        
+        // Save to localStorage for now (in a real app, this would go to the database)
+        const key = `exercise_progress_${dateString}_${exerciseId}`;
+        localStorage.setItem(key, JSON.stringify(progress));
+        
+        console.log('Progress saved:', progress);
+        showSuccess('Exercise progress saved successfully!');
+        
+        // Update the save button to show it's saved
+        const saveBtn = document.querySelector('.tracking-actions .btn-primary');
+        if (saveBtn) {
+            saveBtn.textContent = 'Saved ✓';
+            saveBtn.classList.add('saved');
+            saveBtn.disabled = true;
+        }
+        
+    } catch (error) {
+        console.error('Error saving exercise progress:', error);
+        showError('Failed to save progress: ' + error.message);
     }
 }
 

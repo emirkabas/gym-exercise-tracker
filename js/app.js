@@ -1505,6 +1505,9 @@ function showExerciseTracking(exercise, programId, dateString) {
                 <button class="btn btn-secondary" onclick="resetExerciseTracking()">
                     Reset
                 </button>
+                <button class="btn btn-outline" onclick="testSaveFunction('${exercise.id}', '${programId}', '${dateString}')" style="font-size: 0.8rem;">
+                    Test Save
+                </button>
             </div>
         </div>
     `;
@@ -1566,42 +1569,42 @@ function generateSetInputs(sets, targetReps) {
 
 function saveExerciseProgress(exerciseId, programId, dateString) {
     try {
-        console.log('Saving exercise progress:', exerciseId, programId, dateString);
+        console.log('=== SAVE PROGRESS DEBUG ===');
+        console.log('Parameters:', { exerciseId, programId, dateString });
         
-        // Get the program name to find exercises
-        const program = workoutPrograms.find(p => p.id == programId);
-        if (!program) {
-            console.error('Program not found for saving progress');
-            showError('Program not found');
-            return;
-        }
+        // Find all set input elements directly
+        const allInputs = document.querySelectorAll('input[id^="reps_"], input[id^="weight_"]');
+        console.log('Found inputs:', allInputs.length);
         
-        const programExercises = getProgramExercises(program.name);
-        const exercise = programExercises.find(e => e.id == parseInt(exerciseId));
+        // Get the exercise name from the current tracking card
+        const trackingCard = document.querySelector('.exercise-tracking-card');
+        const exerciseName = trackingCard ? trackingCard.querySelector('h4').textContent : 'Unknown Exercise';
+        console.log('Exercise name:', exerciseName);
         
-        if (!exercise) {
-            console.error('Exercise not found for saving progress');
-            showError('Exercise not found');
-            return;
-        }
+        // Count how many sets we have
+        const repsInputs = document.querySelectorAll('input[id^="reps_"]');
+        const numSets = repsInputs.length;
+        console.log('Number of sets:', numSets);
         
-        const sets = exercise.sets;
         const progress = {
             exerciseId: exerciseId,
             programId: programId,
             date: dateString,
-            exerciseName: exercise.name,
+            exerciseName: exerciseName,
             sets: []
         };
         
         let hasData = false;
-        let totalSets = 0;
         
-        for (let i = 1; i <= sets; i++) {
+        // Collect data from all sets
+        for (let i = 1; i <= numSets; i++) {
             const repsElement = document.getElementById(`reps_${i}`);
             const weightElement = document.getElementById(`weight_${i}`);
             
-            console.log(`Checking set ${i}:`, { repsElement: !!repsElement, weightElement: !!weightElement });
+            console.log(`Set ${i} elements:`, { 
+                repsElement: repsElement ? 'found' : 'missing', 
+                weightElement: weightElement ? 'found' : 'missing' 
+            });
             
             if (repsElement && weightElement) {
                 const reps = repsElement.value.trim();
@@ -1620,23 +1623,20 @@ function saveExerciseProgress(exerciseId, programId, dateString) {
                     
                     progress.sets.push(setData);
                     hasData = true;
-                    totalSets++;
-                    console.log(`Set ${i} data:`, setData);
+                    console.log(`Set ${i} data added:`, setData);
                 }
-            } else {
-                console.error(`Missing elements for set ${i}:`, { repsElement: !!repsElement, weightElement: !!weightElement });
             }
         }
         
-        console.log('Total sets with data:', totalSets);
-        console.log('Progress object:', progress);
+        console.log('Total sets with data:', progress.sets.length);
+        console.log('Final progress object:', progress);
         
         if (!hasData) {
             showError('Please enter at least one set of reps or weight');
             return;
         }
         
-        // Save to localStorage for now (in a real app, this would go to the database)
+        // Save to localStorage
         const key = `exercise_progress_${dateString}_${exerciseId}`;
         localStorage.setItem(key, JSON.stringify(progress));
         
@@ -1651,10 +1651,60 @@ function saveExerciseProgress(exerciseId, programId, dateString) {
             saveBtn.disabled = true;
         }
         
+        console.log('=== SAVE PROGRESS COMPLETE ===');
+        
     } catch (error) {
         console.error('Error saving exercise progress:', error);
         showError('Failed to save progress: ' + error.message);
     }
+}
+
+function testSaveFunction(exerciseId, programId, dateString) {
+    console.log('=== TEST SAVE FUNCTION ===');
+    console.log('Testing with:', { exerciseId, programId, dateString });
+    
+    // Test 1: Check if elements exist
+    const repsInputs = document.querySelectorAll('input[id^="reps_"]');
+    const weightInputs = document.querySelectorAll('input[id^="weight_"]');
+    
+    console.log('Found reps inputs:', repsInputs.length);
+    console.log('Found weight inputs:', weightInputs.length);
+    
+    // Test 2: Check each input
+    for (let i = 1; i <= Math.max(repsInputs.length, weightInputs.length); i++) {
+        const repsEl = document.getElementById(`reps_${i}`);
+        const weightEl = document.getElementById(`weight_${i}`);
+        
+        console.log(`Set ${i}:`, {
+            repsElement: repsEl ? 'EXISTS' : 'MISSING',
+            weightElement: weightEl ? 'EXISTS' : 'MISSING',
+            repsValue: repsEl ? repsEl.value : 'N/A',
+            weightValue: weightEl ? weightEl.value : 'N/A'
+        });
+    }
+    
+    // Test 3: Try to save a simple test
+    const testData = {
+        exerciseId: exerciseId,
+        programId: programId,
+        date: dateString,
+        exerciseName: 'Test Exercise',
+        sets: [
+            { setNumber: 1, reps: 10, weight: 100, completed: true }
+        ]
+    };
+    
+    const testKey = `test_progress_${Date.now()}`;
+    localStorage.setItem(testKey, JSON.stringify(testData));
+    
+    console.log('Test data saved with key:', testKey);
+    console.log('Test data:', testData);
+    
+    // Verify it was saved
+    const retrieved = localStorage.getItem(testKey);
+    console.log('Retrieved test data:', retrieved);
+    
+    showSuccess('Test save completed - check console for details');
 }
 
 function resetExerciseTracking() {

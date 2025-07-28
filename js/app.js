@@ -1512,39 +1512,74 @@ function generateSetInputs(sets, targetReps) {
 }
 
 function saveExerciseProgress(exerciseId, programId, dateString) {
-    const sets = getProgramExercises(selectedProgram).find(e => e.id == parseInt(exerciseId)).sets;
+    console.log('Saving exercise progress:', exerciseId, programId, dateString);
+    
+    // Get the program name to find exercises
+    const program = workoutPrograms.find(p => p.id == programId);
+    if (!program) {
+        console.error('Program not found for saving progress');
+        showError('Program not found');
+        return;
+    }
+    
+    const programExercises = getProgramExercises(program.name);
+    const exercise = programExercises.find(e => e.id == parseInt(exerciseId));
+    
+    if (!exercise) {
+        console.error('Exercise not found for saving progress');
+        showError('Exercise not found');
+        return;
+    }
+    
+    const sets = exercise.sets;
     const progress = {
         exerciseId: exerciseId,
         programId: programId,
         date: dateString,
+        exerciseName: exercise.name,
         sets: []
     };
     
+    let hasData = false;
     for (let i = 1; i <= sets; i++) {
-        const reps = document.getElementById(`reps_${i}`).value;
-        const weight = document.getElementById(`weight_${i}`).value;
+        const repsElement = document.getElementById(`reps_${i}`);
+        const weightElement = document.getElementById(`weight_${i}`);
         
-        if (reps || weight) {
-            progress.sets.push({
-                setNumber: i,
-                reps: parseInt(reps) || 0,
-                weight: parseInt(weight) || 0,
-                completed: true
-            });
+        if (repsElement && weightElement) {
+            const reps = repsElement.value;
+            const weight = weightElement.value;
+            
+            if (reps || weight) {
+                progress.sets.push({
+                    setNumber: i,
+                    reps: parseInt(reps) || 0,
+                    weight: parseInt(weight) || 0,
+                    completed: true
+                });
+                hasData = true;
+            }
         }
+    }
+    
+    if (!hasData) {
+        showError('Please enter at least one set of reps or weight');
+        return;
     }
     
     // Save to localStorage for now (in a real app, this would go to the database)
     const key = `exercise_progress_${dateString}_${exerciseId}`;
     localStorage.setItem(key, JSON.stringify(progress));
     
+    console.log('Progress saved:', progress);
     showSuccess('Exercise progress saved successfully!');
     
     // Update the save button to show it's saved
     const saveBtn = document.querySelector('.tracking-actions .btn-primary');
-    saveBtn.textContent = 'Saved ✓';
-    saveBtn.classList.add('saved');
-    saveBtn.disabled = true;
+    if (saveBtn) {
+        saveBtn.textContent = 'Saved ✓';
+        saveBtn.classList.add('saved');
+        saveBtn.disabled = true;
+    }
 }
 
 function resetExerciseTracking() {
@@ -1561,8 +1596,34 @@ function resetExerciseTracking() {
 
 // Utility functions
 function showError(message) {
-    console.error(message);
-    // You could implement a toast notification system here
+    console.error('Error:', message);
+    
+    // Create an error notification
+    const notification = document.createElement('div');
+    notification.className = 'error-notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #dc3545;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 4 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 4000);
 }
 
 // Exercise editing functions
@@ -1696,8 +1757,44 @@ async function saveExerciseChanges(exerciseId) {
 }
 
 function showSuccess(message) {
-    // Simple success notification
-    alert(message); // You could implement a better notification system
+    console.log('Success:', message);
+    
+    // Create a success notification
+    const notification = document.createElement('div');
+    notification.className = 'success-notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideIn 0.3s ease;
+    `;
+    notification.textContent = message;
+    
+    // Add animation CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
 }
 
 function showExerciseTracking(exerciseId, sets, reps, dateString, programId) {

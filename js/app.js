@@ -1355,6 +1355,9 @@ function showExerciseSelection(programId, dateString) {
                     <option value="${exercise.id}">${exercise.name}</option>
                 `).join('')}
             </select>
+            <button class="btn btn-secondary" onclick="onExerciseSelected('${programId}', '${dateString}')" style="margin-top: 10px;">
+                Load Exercise
+            </button>
         </div>
         <div id="exerciseTrackingSection" class="exercise-tracking-section" style="display: none;">
             <!-- Exercise tracking will be loaded here -->
@@ -1368,6 +1371,16 @@ function showExerciseSelection(programId, dateString) {
         existingSection.remove();
     }
     container.appendChild(exerciseSection);
+    
+    // Add event listener to the select element
+    setTimeout(() => {
+        const exerciseSelect = document.getElementById('exerciseSelect');
+        if (exerciseSelect) {
+            exerciseSelect.addEventListener('change', function() {
+                onExerciseSelected(programId, dateString);
+            });
+        }
+    }, 100);
 }
 
 function getProgramExercises(programName) {
@@ -1406,25 +1419,51 @@ function getProgramExercises(programName) {
 }
 
 function onExerciseSelected(programId, dateString) {
+    console.log('Exercise selected:', programId, dateString);
+    
     const exerciseSelect = document.getElementById('exerciseSelect');
+    if (!exerciseSelect) {
+        console.error('Exercise select element not found');
+        return;
+    }
+    
     const exerciseId = exerciseSelect.value;
+    console.log('Selected exercise ID:', exerciseId);
     
     if (!exerciseId) {
-        document.getElementById('exerciseTrackingSection').style.display = 'none';
+        const trackingSection = document.getElementById('exerciseTrackingSection');
+        if (trackingSection) {
+            trackingSection.style.display = 'none';
+        }
         return;
     }
     
     const program = workoutPrograms.find(p => p.id == programId);
+    if (!program) {
+        console.error('Program not found:', programId);
+        return;
+    }
+    
     const programExercises = getProgramExercises(program.name);
     const selectedExercise = programExercises.find(e => e.id == parseInt(exerciseId));
     
+    console.log('Selected exercise:', selectedExercise);
+    
     if (selectedExercise) {
         showExerciseTracking(selectedExercise, programId, dateString);
+    } else {
+        console.error('Exercise not found in program exercises');
     }
 }
 
 function showExerciseTracking(exercise, programId, dateString) {
+    console.log('Showing exercise tracking for:', exercise);
+    
     const trackingSection = document.getElementById('exerciseTrackingSection');
+    if (!trackingSection) {
+        console.error('Exercise tracking section not found');
+        return;
+    }
     
     trackingSection.innerHTML = `
         <div class="exercise-tracking-card">
@@ -1447,6 +1486,7 @@ function showExerciseTracking(exercise, programId, dateString) {
     `;
     
     trackingSection.style.display = 'block';
+    console.log('Exercise tracking section displayed');
 }
 
 function generateSetInputs(sets, targetReps) {

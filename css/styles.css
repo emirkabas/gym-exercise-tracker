@@ -1958,6 +1958,133 @@ input:checked + .slider:before {
     min-height: calc(100vh - 100px); /* Ensure minimum height */
 }
 
+/* Content Layout - Sidebar + Main Content */
+.content-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 30px;
+    margin-top: 20px;
+}
+
+.sidebar {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.1);
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+}
+
+.search-section {
+    margin-bottom: 25px;
+}
+
+.search-section .search-input {
+    width: 100%;
+    padding: 12px 15px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+.search-section .search-input:focus {
+    outline: none;
+    border-color: #007AFF;
+    background: rgba(255,255,255,0.1);
+}
+
+.search-section .search-input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+.filter-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.filter-group {
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 15px;
+}
+
+.filter-group:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 10px 0;
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-header:hover {
+    color: #007AFF;
+}
+
+.filter-arrow {
+    font-size: 0.8rem;
+    transition: transform 0.3s ease;
+}
+
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.9rem;
+    padding: 5px 0;
+}
+
+.filter-option:hover {
+    color: #ffffff;
+}
+
+.filter-option input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #007AFF;
+}
+
+.count {
+    color: rgba(255,255,255,0.5);
+    font-size: 0.8rem;
+    margin-left: auto;
+}
+
+.main-content {
+    min-height: 500px;
+}
+
+/* Grid Layouts */
+.programs-grid,
+.exercises-grid,
+.muscle-groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
 /* Removed unnecessary exercise display styles - exercises only shown in View Details */
 
 .exercise-modal h2 {

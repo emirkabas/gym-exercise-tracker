@@ -393,86 +393,217 @@ function loadPage(page, params = {}) {
 // Exercises page
 function loadExercisesPage(container) {
     container.innerHTML = `
-        <div class="container">
-            <div class="page-header">
-                <button class="back-button" onclick="goBack()">
-                    <img src="icons/icons-back-50.png" alt="Back" class="back-icon">
-                </button>
-                <h1 class="page-title">Exercises</h1>
+        <div class="page-header">
+            <h1>Exercises</h1>
+            <p>Browse and search exercises by muscle group</p>
+        </div>
+        
+        <div class="content-layout">
+            <div class="sidebar">
+                <div class="search-section">
+                    <input type="text" id="exerciseSearch" class="search-input" placeholder="Search exercises...">
+                </div>
+                
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <div class="filter-header" onclick="toggleFilter('muscleGroup')">
+                            <span>MUSCLE GROUP</span>
+                            <span class="filter-arrow">▼</span>
+                        </div>
+                        <div class="filter-options" id="muscleGroupFilter">
+                            <label class="filter-option">
+                                <input type="checkbox" value=""> All Groups
+                                <span class="count">(0)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="filter-header" onclick="toggleFilter('difficulty')">
+                            <span>DIFFICULTY</span>
+                            <span class="filter-arrow">▼</span>
+                        </div>
+                        <div class="filter-options" id="difficultyFilter">
+                            <label class="filter-option">
+                                <input type="checkbox" value="Beginner"> Beginner
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="Intermediate"> Intermediate
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="Advanced"> Advanced
+                                <span class="count">(0)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="filter-header" onclick="toggleFilter('equipment')">
+                            <span>EQUIPMENT</span>
+                            <span class="filter-arrow">▼</span>
+                        </div>
+                        <div class="filter-options" id="equipmentFilter">
+                            <label class="filter-option">
+                                <input type="checkbox" value="None"> No Equipment
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="Dumbbells"> Dumbbells
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="Barbell"> Barbell
+                                <span class="count">(0)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div class="search-container">
-                <input type="text" class="form-control search-input" placeholder="Search exercises..." id="exerciseSearch">
-                <select class="form-control filter-select" id="muscleGroupFilter">
-                    <option value="">All Muscle Groups</option>
-                </select>
-                <select class="form-control filter-select" id="difficultyFilter">
-                    <option value="">All Difficulties</option>
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                </select>
-            </div>
-            
-            <div id="exercisesList" class="card-grid">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading exercises...</p>
+            <div class="main-content">
+                <div id="exercisesList" class="exercises-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading exercises...</p>
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
-    loadExercises();
     setupExerciseFilters();
+    loadExercises();
 }
 
 // Muscle Groups page
 function loadMuscleGroupsPage(container) {
     container.innerHTML = `
-        <div class="container">
-            <div class="page-header">
-                <button class="back-button" onclick="goBack()">
-                    <img src="icons/icons-back-50.png" alt="Back" class="back-icon">
-                </button>
-                <h1 class="page-title">Muscle Groups</h1>
+        <div class="page-header">
+            <h1>Muscle Groups</h1>
+            <p>Browse exercises by muscle group</p>
+        </div>
+        
+        <div class="content-layout">
+            <div class="sidebar">
+                <div class="search-section">
+                    <input type="text" id="muscleGroupSearch" class="search-input" placeholder="Search muscle groups...">
+                </div>
+                
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <div class="filter-header" onclick="toggleFilter('exerciseCount')">
+                            <span>EXERCISE COUNT</span>
+                            <span class="filter-arrow">▼</span>
+                        </div>
+                        <div class="filter-options" id="exerciseCountFilter">
+                            <label class="filter-option">
+                                <input type="checkbox" value="1-10"> 1-10 exercises
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="11-20"> 11-20 exercises
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="21+"> 21+ exercises
+                                <span class="count">(0)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div id="muscleGroupsList" class="card-grid">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading muscle groups...</p>
+            <div class="main-content">
+                <div id="muscleGroupsList" class="muscle-groups-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading muscle groups...</p>
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
+    setupMuscleGroupFilters();
     loadMuscleGroups();
 }
 
 // Workout Programs page
 function loadWorkoutProgramsPage(container) {
     container.innerHTML = `
-        <div class="container">
-            <div class="page-header">
-                <button class="back-button" onclick="goBack()">
-                    <img src="icons/icons-back-50.png" alt="Back" class="back-icon">
-                </button>
-                <h1 class="page-title">Workout Programs</h1>
-                <button class="btn btn-primary" onclick="showCreateProgramModal()">
-                    <span>+</span> Create New Program
-                </button>
+        <div class="page-header">
+            <h1>Workout Programs</h1>
+            <button class="btn btn-primary" onclick="showCreateProgramModal()">
+                <span>+ Create New Program</span>
+            </button>
+        </div>
+        
+        <div class="content-layout">
+            <div class="sidebar">
+                <div class="search-section">
+                    <input type="text" id="programSearch" class="search-input" placeholder="Search programs...">
+                </div>
+                
+                <div class="filter-section">
+                    <div class="filter-group">
+                        <div class="filter-header" onclick="toggleFilter('difficulty')">
+                            <span>DIFFICULTY</span>
+                            <span class="filter-arrow">▼</span>
+                        </div>
+                        <div class="filter-options" id="difficultyFilter">
+                            <label class="filter-option">
+                                <input type="checkbox" value="Beginner"> Beginner
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="Intermediate"> Intermediate
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="Advanced"> Advanced
+                                <span class="count">(0)</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <div class="filter-header" onclick="toggleFilter('duration')">
+                            <span>DURATION</span>
+                            <span class="filter-arrow">▼</span>
+                        </div>
+                        <div class="filter-options" id="durationFilter">
+                            <label class="filter-option">
+                                <input type="checkbox" value="1-4"> 1-4 weeks
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="5-8"> 5-8 weeks
+                                <span class="count">(0)</span>
+                            </label>
+                            <label class="filter-option">
+                                <input type="checkbox" value="9-12"> 9-12 weeks
+                                <span class="count">(0)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div id="workoutProgramsList" class="card-grid">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading workout programs...</p>
+            <div class="main-content">
+                <div id="workoutProgramsList" class="programs-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading workout programs...</p>
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
+    // Setup search and filters
+    setupProgramFilters();
     loadWorkoutPrograms();
 }
 
@@ -907,6 +1038,9 @@ function displayExercises(exercisesToShow) {
             </div>
         </div>
     `).join('');
+    
+    // Update filter counts after displaying
+    updateFilterCounts();
 }
 
 function displayMuscleGroups(groups) {
@@ -917,13 +1051,20 @@ function displayMuscleGroups(groups) {
         return;
     }
     
-    container.innerHTML = groups.map(group => `
-        <div class="card">
-            <h3>${group.name}</h3>
-            <p>${group.description || 'No description available.'}</p>
-            <button class="btn btn-secondary" onclick="navigateToPage('muscle-group-exercises', { muscleGroupId: ${group.id} })">View Exercises</button>
-        </div>
-    `).join('');
+    container.innerHTML = groups.map(group => {
+        const exerciseCount = exercises.filter(e => e.muscle_group_id === group.id).length;
+        return `
+            <div class="card">
+                <h3>${group.name}</h3>
+                <p>${group.description || 'No description available.'}</p>
+                <p><strong>Exercises:</strong> ${exerciseCount} exercises</p>
+                <button class="btn btn-secondary" onclick="navigateToPage('muscle-group-exercises', { muscleGroupId: ${group.id} })">View Exercises</button>
+            </div>
+        `;
+    }).join('');
+    
+    // Update filter counts after displaying
+    updateMuscleGroupFilterCounts();
 }
 
 function displayWorkoutPrograms(programs) {
@@ -959,36 +1100,226 @@ function displayWorkoutPrograms(programs) {
             </div>
         `;
     }).join('');
+    
+    // Update filter counts after displaying
+    updateProgramFilterCounts();
 }
 
 // Filter functions
 function setupExerciseFilters() {
     const searchInput = document.getElementById('exerciseSearch');
-    const muscleGroupFilter = document.getElementById('muscleGroupFilter');
-    const difficultyFilter = document.getElementById('difficultyFilter');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterExercises);
+    }
     
-    searchInput.addEventListener('input', filterExercises);
-    muscleGroupFilter.addEventListener('change', filterExercises);
-    difficultyFilter.addEventListener('change', filterExercises);
+    // Setup checkbox filters
+    const checkboxes = document.querySelectorAll('#muscleGroupFilter input, #difficultyFilter input, #equipmentFilter input');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', filterExercises);
+    });
+    
+    updateFilterCounts();
+}
+
+function setupProgramFilters() {
+    const searchInput = document.getElementById('programSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterPrograms);
+    }
+    
+    // Setup checkbox filters
+    const checkboxes = document.querySelectorAll('#difficultyFilter input, #durationFilter input');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', filterPrograms);
+    });
+    
+    updateProgramFilterCounts();
+}
+
+function setupMuscleGroupFilters() {
+    const searchInput = document.getElementById('muscleGroupSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterMuscleGroups);
+    }
+    
+    // Setup checkbox filters
+    const checkboxes = document.querySelectorAll('#exerciseCountFilter input');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', filterMuscleGroups);
+    });
+    
+    updateMuscleGroupFilterCounts();
+}
+
+function toggleFilter(filterType) {
+    const filterOptions = document.getElementById(filterType + 'Filter');
+    const arrow = event.target.querySelector('.filter-arrow') || event.target.parentElement.querySelector('.filter-arrow');
+    
+    if (filterOptions) {
+        const isVisible = filterOptions.style.display !== 'none';
+        filterOptions.style.display = isVisible ? 'none' : 'block';
+        if (arrow) {
+            arrow.textContent = isVisible ? '▼' : '▲';
+        }
+    }
 }
 
 function filterExercises() {
-    const searchTerm = document.getElementById('exerciseSearch').value.toLowerCase();
-    const muscleGroupId = document.getElementById('muscleGroupFilter').value;
-    const difficulty = document.getElementById('difficultyFilter').value;
+    const searchTerm = document.getElementById('exerciseSearch')?.value.toLowerCase() || '';
+    const selectedMuscleGroups = Array.from(document.querySelectorAll('#muscleGroupFilter input:checked')).map(cb => cb.value);
+    const selectedDifficulties = Array.from(document.querySelectorAll('#difficultyFilter input:checked')).map(cb => cb.value);
+    const selectedEquipment = Array.from(document.querySelectorAll('#equipmentFilter input:checked')).map(cb => cb.value);
     
     let filtered = exercises.filter(exercise => {
         const matchesSearch = exercise.name.toLowerCase().includes(searchTerm) ||
                             exercise.description?.toLowerCase().includes(searchTerm) ||
                             exercise.muscle_group_name.toLowerCase().includes(searchTerm);
         
-        const matchesMuscleGroup = !muscleGroupId || exercise.muscle_group_id == muscleGroupId;
-        const matchesDifficulty = !difficulty || exercise.difficulty_level === difficulty;
+        const matchesMuscleGroup = selectedMuscleGroups.length === 0 || selectedMuscleGroups.includes('') || 
+                                 selectedMuscleGroups.includes(exercise.muscle_group_name);
+        const matchesDifficulty = selectedDifficulties.length === 0 || 
+                                selectedDifficulties.includes(exercise.difficulty_level);
+        const matchesEquipment = selectedEquipment.length === 0 || 
+                               selectedEquipment.includes(exercise.equipment || 'None');
         
-        return matchesSearch && matchesMuscleGroup && matchesDifficulty;
+        return matchesSearch && matchesMuscleGroup && matchesDifficulty && matchesEquipment;
     });
     
     displayExercises(filtered);
+}
+
+function filterPrograms() {
+    const searchTerm = document.getElementById('programSearch')?.value.toLowerCase() || '';
+    const selectedDifficulties = Array.from(document.querySelectorAll('#difficultyFilter input:checked')).map(cb => cb.value);
+    const selectedDurations = Array.from(document.querySelectorAll('#durationFilter input:checked')).map(cb => cb.value);
+    
+    let filtered = workoutPrograms.filter(program => {
+        const matchesSearch = program.name.toLowerCase().includes(searchTerm) ||
+                            program.description?.toLowerCase().includes(searchTerm);
+        
+        const matchesDifficulty = selectedDifficulties.length === 0 || 
+                                selectedDifficulties.includes(program.difficulty_level);
+        
+        let matchesDuration = selectedDurations.length === 0;
+        if (selectedDurations.length > 0) {
+            const duration = program.duration_weeks || 0;
+            selectedDurations.forEach(range => {
+                if (range === '1-4' && duration >= 1 && duration <= 4) matchesDuration = true;
+                if (range === '5-8' && duration >= 5 && duration <= 8) matchesDuration = true;
+                if (range === '9-12' && duration >= 9 && duration <= 12) matchesDuration = true;
+            });
+        }
+        
+        return matchesSearch && matchesDifficulty && matchesDuration;
+    });
+    
+    displayWorkoutPrograms(filtered);
+}
+
+function filterMuscleGroups() {
+    const searchTerm = document.getElementById('muscleGroupSearch')?.value.toLowerCase() || '';
+    const selectedCounts = Array.from(document.querySelectorAll('#exerciseCountFilter input:checked')).map(cb => cb.value);
+    
+    let filtered = muscleGroups.filter(group => {
+        const matchesSearch = group.name.toLowerCase().includes(searchTerm);
+        
+        let matchesCount = selectedCounts.length === 0;
+        if (selectedCounts.length > 0) {
+            const exerciseCount = exercises.filter(e => e.muscle_group_id === group.id).length;
+            selectedCounts.forEach(range => {
+                if (range === '1-10' && exerciseCount >= 1 && exerciseCount <= 10) matchesCount = true;
+                if (range === '11-20' && exerciseCount >= 11 && exerciseCount <= 20) matchesCount = true;
+                if (range === '21+' && exerciseCount >= 21) matchesCount = true;
+            });
+        }
+        
+        return matchesSearch && matchesCount;
+    });
+    
+    displayMuscleGroups(filtered);
+}
+
+function updateFilterCounts() {
+    // Update muscle group counts
+    muscleGroups.forEach(group => {
+        const count = exercises.filter(e => e.muscle_group_name === group.name).length;
+        const option = document.querySelector(`#muscleGroupFilter input[value="${group.name}"]`);
+        if (option) {
+            const countSpan = option.parentElement.querySelector('.count');
+            if (countSpan) countSpan.textContent = `(${count})`;
+        }
+    });
+    
+    // Update difficulty counts
+    const difficulties = ['Beginner', 'Intermediate', 'Advanced'];
+    difficulties.forEach(difficulty => {
+        const count = exercises.filter(e => e.difficulty_level === difficulty).length;
+        const option = document.querySelector(`#difficultyFilter input[value="${difficulty}"]`);
+        if (option) {
+            const countSpan = option.parentElement.querySelector('.count');
+            if (countSpan) countSpan.textContent = `(${count})`;
+        }
+    });
+    
+    // Update equipment counts
+    const equipments = ['None', 'Dumbbells', 'Barbell'];
+    equipments.forEach(equipment => {
+        const count = exercises.filter(e => (e.equipment || 'None') === equipment).length;
+        const option = document.querySelector(`#equipmentFilter input[value="${equipment}"]`);
+        if (option) {
+            const countSpan = option.parentElement.querySelector('.count');
+            if (countSpan) countSpan.textContent = `(${count})`;
+        }
+    });
+}
+
+function updateProgramFilterCounts() {
+    // Update difficulty counts
+    const difficulties = ['Beginner', 'Intermediate', 'Advanced'];
+    difficulties.forEach(difficulty => {
+        const count = workoutPrograms.filter(p => p.difficulty_level === difficulty).length;
+        const option = document.querySelector(`#difficultyFilter input[value="${difficulty}"]`);
+        if (option) {
+            const countSpan = option.parentElement.querySelector('.count');
+            if (countSpan) countSpan.textContent = `(${count})`;
+        }
+    });
+    
+    // Update duration counts
+    const durations = ['1-4', '5-8', '9-12'];
+    durations.forEach(duration => {
+        let count = 0;
+        workoutPrograms.forEach(program => {
+            const weeks = program.duration_weeks || 0;
+            if (duration === '1-4' && weeks >= 1 && weeks <= 4) count++;
+            if (duration === '5-8' && weeks >= 5 && weeks <= 8) count++;
+            if (duration === '9-12' && weeks >= 9 && weeks <= 12) count++;
+        });
+        const option = document.querySelector(`#durationFilter input[value="${duration}"]`);
+        if (option) {
+            const countSpan = option.parentElement.querySelector('.count');
+            if (countSpan) countSpan.textContent = `(${count})`;
+        }
+    });
+}
+
+function updateMuscleGroupFilterCounts() {
+    // Update exercise count ranges
+    const ranges = ['1-10', '11-20', '21+'];
+    ranges.forEach(range => {
+        let count = 0;
+        muscleGroups.forEach(group => {
+            const exerciseCount = exercises.filter(e => e.muscle_group_id === group.id).length;
+            if (range === '1-10' && exerciseCount >= 1 && exerciseCount <= 10) count++;
+            if (range === '11-20' && exerciseCount >= 11 && exerciseCount <= 20) count++;
+            if (range === '21+' && exerciseCount >= 21) count++;
+        });
+        const option = document.querySelector(`#exerciseCountFilter input[value="${range}"]`);
+        if (option) {
+            const countSpan = option.parentElement.querySelector('.count');
+            if (countSpan) countSpan.textContent = `(${count})`;
+        }
+    });
 }
 
 function updateMuscleGroupFilter() {

@@ -2074,11 +2074,10 @@ function showExerciseTracking(exerciseId, sets, reps, dateString, programId) {
                         ${generateSetInputs(sets, trackingData)}
                     </div>
                     
-                                          <div class="tracking-actions">
-                          <button class="btn btn-primary" onclick="saveExerciseProgress('${exerciseId}', '${programId}', '${dateString}')">Save Progress</button>
-                          <button class="btn btn-secondary" onclick="testSaveFunction('${exerciseId}', '${programId}', '${dateString}')">Test Save</button>
-                          <button class="btn btn-secondary" onclick="showExerciseDetails(${exerciseId})">View Exercise Details</button>
-                      </div>
+                    <div class="tracking-actions">
+                        <button class="btn btn-secondary" onclick="saveExerciseTracking(${exerciseId}, '${dateString}', ${programId})">Save Progress</button>
+                        <button class="btn btn-secondary" onclick="showExerciseDetails(${exerciseId})">View Exercise Details</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -2147,7 +2146,128 @@ async function loadExerciseTrackingData(exerciseId, dateString) {
     }
 }
 
-
+async function saveExerciseTracking(exerciseId, dateString, programId) {
+    try {
+        console.log('=== SAVE EXERCISE TRACKING START ===');
+        console.log('Parameters:', { exerciseId, dateString, programId });
+        
+        const trackingData = {};
+        
+        // Try multiple approaches to find the exercise card
+        let exerciseCard = null;
+        
+        // Approach 1: Look for data-exercise-id attribute
+        exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+        console.log('Approach 1 - data-exercise-id:', exerciseCard);
+        
+        // Approach 2: Look for exercise-tracking-card class
+        if (!exerciseCard) {
+            exerciseCard = document.querySelector('.exercise-tracking-card');
+            console.log('Approach 2 - exercise-tracking-card:', exerciseCard);
+        }
+        
+        // Approach 3: Look for modal content
+        if (!exerciseCard) {
+            exerciseCard = document.querySelector('.exercise-tracking-modal');
+            console.log('Approach 3 - exercise-tracking-modal:', exerciseCard);
+        }
+        
+        // Approach 4: Look for any modal content
+        if (!exerciseCard) {
+            exerciseCard = document.querySelector('.modal-content');
+            console.log('Approach 4 - modal-content:', exerciseCard);
+        }
+        
+        if (!exerciseCard) {
+            console.error('No exercise card found with any approach');
+            showError('Exercise tracking section not found');
+            return;
+        }
+        
+        // Find all inputs with data-set attribute
+        const inputs = exerciseCard.querySelectorAll('input[data-set]');
+        console.log('Found inputs with data-set:', inputs.length);
+        
+        // If no inputs with data-set, try all number inputs
+        if (inputs.length === 0) {
+            const numberInputs = exerciseCard.querySelectorAll('input[type="number"]');
+            console.log('Found number inputs:', numberInputs.length);
+            
+            // Group number inputs by sets (assuming they're in order: weight1, reps1, weight2, reps2, etc.)
+            for (let i = 0; i < numberInputs.length; i += 2) {
+                const weightInput = numberInputs[i];
+                const repsInput = numberInputs[i + 1];
+                const setNumber = Math.floor(i / 2) + 1;
+                
+                if (weightInput && repsInput) {
+                    const weight = weightInput.value.trim();
+                    const reps = repsInput.value.trim();
+                    
+                    console.log(`Set ${setNumber}:`, { weight, reps });
+                    
+                    if (weight !== '' || reps !== '') {
+                        trackingData[setNumber] = {
+                            weight: weight !== '' ? parseInt(weight) : 0,
+                            reps: reps !== '' ? parseInt(reps) : 0
+                        };
+                    }
+                }
+            }
+        } else {
+            // Use the original approach with data-set attributes
+            inputs.forEach(input => {
+                const set = input.getAttribute('data-set');
+                const field = input.getAttribute('data-field');
+                const value = input.value;
+                
+                console.log('Processing input:', { set, field, value });
+                
+                if (set && field) {
+                    if (!trackingData[set]) trackingData[set] = {};
+                    trackingData[set][field] = value;
+                }
+            });
+        }
+        
+        console.log('Collected tracking data:', trackingData);
+        
+        // Check if we have any data to save
+        if (Object.keys(trackingData).length === 0) {
+            showError('No data to save. Please enter some values.');
+            return;
+        }
+        
+        // Save to localStorage (simpler approach)
+        const key = `tracking_${exerciseId}_${dateString}`;
+        const saveData = {
+            exerciseId: exerciseId,
+            programId: programId,
+            date: dateString,
+            sets: trackingData,
+            timestamp: new Date().toISOString()
+        };
+        
+        localStorage.setItem(key, JSON.stringify(saveData));
+        console.log('Saved to localStorage with key:', key);
+        console.log('Saved data:', saveData);
+        
+        showSuccess('Progress saved successfully!');
+        
+        // Update the save button to show saved state
+        const saveBtn = exerciseCard.querySelector('.btn-primary, .save-tracking-btn');
+        if (saveBtn) {
+            saveBtn.textContent = 'Saved ✓';
+            saveBtn.classList.add('saved');
+            saveBtn.disabled = true;
+        }
+        
+        console.log('=== SAVE EXERCISE TRACKING COMPLETE ===');
+        
+    } catch (error) {
+        console.error('Error saving tracking data:', error);
+        showError('Failed to save progress: ' + error.message);
+    }
+}
 
 // Save all progress for the current workout
 async function saveAllProgress() {

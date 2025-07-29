@@ -1910,6 +1910,82 @@ function testModalSave() {
     }
 }
 
+// Function to test each step individually
+function testSaveStep(step) {
+    try {
+        console.log(`=== TESTING SAVE STEP ${step} ===`);
+        
+        switch(step) {
+            case 1:
+                console.log('Step 1: Parameter validation');
+                console.log('Parameters:', { exerciseId: 'test', dateString: '2024-01-15', programId: 'test' });
+                break;
+                
+            case 2:
+                console.log('Step 2: Modal detection');
+                const modal = document.querySelector('.modal');
+                console.log('Modal found:', modal);
+                break;
+                
+            case 3:
+                console.log('Step 3: Modal content detection');
+                const modalContent = document.querySelector('.modal .modal-content');
+                console.log('Modal content found:', modalContent);
+                break;
+                
+            case 4:
+                console.log('Step 4: Input detection');
+                const modalContent2 = document.querySelector('.modal .modal-content');
+                if (modalContent2) {
+                    const numberInputs = modalContent2.querySelectorAll('input[type="number"]');
+                    const dataSetInputs = modalContent2.querySelectorAll('input[data-set]');
+                    const allInputs = modalContent2.querySelectorAll('input');
+                    console.log('Input counts:', { numberInputs: numberInputs.length, dataSetInputs: dataSetInputs.length, allInputs: allInputs.length });
+                } else {
+                    console.log('No modal content found for input detection');
+                }
+                break;
+                
+            case 10:
+                console.log('Step 10: localStorage test');
+                const testKey = 'test_localStorage';
+                localStorage.setItem(testKey, 'test');
+                const testResult = localStorage.getItem(testKey);
+                localStorage.removeItem(testKey);
+                console.log('localStorage test result:', testResult);
+                break;
+                
+            case 11:
+                console.log('Step 11: JSON stringify test');
+                const testData = { test: 'data', number: 123 };
+                const jsonString = JSON.stringify(testData);
+                console.log('JSON stringify result:', jsonString);
+                break;
+                
+            default:
+                console.log(`Step ${step} not implemented for testing`);
+        }
+        
+        return true;
+    } catch (error) {
+        console.error(`Test step ${step} failed:`, error);
+        return false;
+    }
+}
+
+// Function to run all save tests
+function runAllSaveTests() {
+    console.log('=== RUNNING ALL SAVE TESTS ===');
+    
+    for (let step = 1; step <= 11; step++) {
+        if (step >= 5 && step <= 9) continue; // Skip steps that require modal
+        testSaveStep(step);
+        console.log('---');
+    }
+    
+    console.log('=== ALL TESTS COMPLETE ===');
+}
+
 function resetExerciseTracking() {
     const inputs = document.querySelectorAll('.set-input');
     inputs.forEach(input => {
@@ -2223,7 +2299,15 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         console.log('=== SAVE EXERCISE TRACKING START ===');
         console.log('Parameters:', { exerciseId, dateString, programId });
         
-        // First, let's check if we're in a modal context
+        // Step 1: Validate parameters
+        if (!exerciseId || !dateString || !programId) {
+            console.error('Missing required parameters:', { exerciseId, dateString, programId });
+            showError('Missing required parameters for saving');
+            return;
+        }
+        
+        // Step 2: Check if we're in a modal context
+        console.log('Step 2: Looking for modal...');
         const modal = document.querySelector('.modal');
         console.log('Modal found:', modal);
         
@@ -2233,7 +2317,8 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             return;
         }
         
-        // Look for the modal content
+        // Step 3: Look for the modal content
+        console.log('Step 3: Looking for modal content...');
         const modalContent = modal.querySelector('.modal-content');
         console.log('Modal content found:', modalContent);
         
@@ -2243,17 +2328,19 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             return;
         }
         
-        const trackingData = {};
-        
-        // Find all number inputs in the modal
+        // Step 4: Find inputs
+        console.log('Step 4: Looking for inputs...');
         const numberInputs = modalContent.querySelectorAll('input[type="number"]');
-        console.log('Found number inputs in modal:', numberInputs.length);
-        
-        // Also find inputs with data-set attribute
         const dataSetInputs = modalContent.querySelectorAll('input[data-set]');
-        console.log('Found inputs with data-set:', dataSetInputs.length);
+        const allInputs = modalContent.querySelectorAll('input');
         
-        // Use data-set inputs if available, otherwise use number inputs
+        console.log('Input counts:', {
+            numberInputs: numberInputs.length,
+            dataSetInputs: dataSetInputs.length,
+            allInputs: allInputs.length
+        });
+        
+        // Step 5: Determine which inputs to process
         const inputsToProcess = dataSetInputs.length > 0 ? dataSetInputs : numberInputs;
         console.log('Processing inputs:', inputsToProcess.length);
         
@@ -2263,58 +2350,76 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             return;
         }
         
-        // Process inputs based on their type
+        // Step 6: Process inputs
+        console.log('Step 6: Processing inputs...');
+        const trackingData = {};
+        
         if (dataSetInputs.length > 0) {
             // Use data-set approach
-            inputsToProcess.forEach(input => {
-                const set = input.getAttribute('data-set');
-                const field = input.getAttribute('data-field');
-                const value = input.value.trim();
-                
-                console.log('Processing data-set input:', { set, field, value });
-                
-                if (set && field) {
-                    if (!trackingData[set]) trackingData[set] = {};
-                    trackingData[set][field] = value !== '' ? parseInt(value) || 0 : 0;
+            console.log('Using data-set approach...');
+            inputsToProcess.forEach((input, index) => {
+                try {
+                    const set = input.getAttribute('data-set');
+                    const field = input.getAttribute('data-field');
+                    const value = input.value.trim();
+                    
+                    console.log(`Input ${index}:`, { set, field, value });
+                    
+                    if (set && field) {
+                        if (!trackingData[set]) trackingData[set] = {};
+                        const parsedValue = value !== '' ? parseInt(value) || 0 : 0;
+                        trackingData[set][field] = parsedValue;
+                        console.log(`Set ${set}.${field} = ${parsedValue}`);
+                    }
+                } catch (inputError) {
+                    console.error(`Error processing input ${index}:`, inputError);
                 }
             });
         } else {
             // Use number input grouping approach
+            console.log('Using number input grouping approach...');
             for (let i = 0; i < inputsToProcess.length; i += 2) {
-                const weightInput = inputsToProcess[i];
-                const repsInput = inputsToProcess[i + 1];
-                const setNumber = Math.floor(i / 2) + 1;
-                
-                if (weightInput && repsInput) {
-                    const weight = weightInput.value.trim();
-                    const reps = repsInput.value.trim();
+                try {
+                    const weightInput = inputsToProcess[i];
+                    const repsInput = inputsToProcess[i + 1];
+                    const setNumber = Math.floor(i / 2) + 1;
                     
-                    console.log(`Set ${setNumber}:`, { weight, reps });
-                    
-                    if (weight !== '' || reps !== '') {
-                        trackingData[setNumber] = {
-                            weight: weight !== '' ? parseInt(weight) || 0 : 0,
-                            reps: reps !== '' ? parseInt(reps) || 0 : 0
-                        };
+                    if (weightInput && repsInput) {
+                        const weight = weightInput.value.trim();
+                        const reps = repsInput.value.trim();
+                        
+                        console.log(`Set ${setNumber}:`, { weight, reps });
+                        
+                        if (weight !== '' || reps !== '') {
+                            trackingData[setNumber] = {
+                                weight: weight !== '' ? parseInt(weight) || 0 : 0,
+                                reps: reps !== '' ? parseInt(reps) || 0 : 0
+                            };
+                        }
                     }
+                } catch (setError) {
+                    console.error(`Error processing set ${Math.floor(i / 2) + 1}:`, setError);
                 }
             }
         }
         
         console.log('Collected tracking data:', trackingData);
         
-        // Check if we have any data to save
+        // Step 7: Validate collected data
         if (Object.keys(trackingData).length === 0) {
+            console.error('No data collected from inputs');
             showError('No data to save. Please enter some values.');
             return;
         }
         
-        // Get exercise name from the modal
+        // Step 8: Get exercise name
+        console.log('Step 8: Getting exercise name...');
         const exerciseNameElement = modalContent.querySelector('h2');
         const exerciseName = exerciseNameElement ? exerciseNameElement.textContent : 'Unknown Exercise';
         console.log('Exercise name:', exerciseName);
         
-        // Save to localStorage
+        // Step 9: Prepare save data
+        console.log('Step 9: Preparing save data...');
         const key = `tracking_${exerciseId}_${dateString}`;
         const saveData = {
             exerciseId: exerciseId,
@@ -2325,10 +2430,58 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             timestamp: new Date().toISOString()
         };
         
-        localStorage.setItem(key, JSON.stringify(saveData));
-        console.log('Saved to localStorage with key:', key);
-        console.log('Saved data:', saveData);
+        console.log('Save data prepared:', saveData);
         
+        // Step 10: Test localStorage availability
+        console.log('Step 10: Testing localStorage...');
+        try {
+            const testKey = 'test_localStorage';
+            localStorage.setItem(testKey, 'test');
+            const testResult = localStorage.getItem(testKey);
+            localStorage.removeItem(testKey);
+            
+            if (testResult !== 'test') {
+                throw new Error('localStorage test failed');
+            }
+            console.log('localStorage test passed');
+        } catch (storageError) {
+            console.error('localStorage test failed:', storageError);
+            showError('localStorage is not available in this browser');
+            return;
+        }
+        
+        // Step 11: Stringify data
+        console.log('Step 11: Stringifying data...');
+        let jsonString;
+        try {
+            jsonString = JSON.stringify(saveData);
+            console.log('Data stringified successfully, length:', jsonString.length);
+        } catch (jsonError) {
+            console.error('JSON.stringify failed:', jsonError);
+            showError('Failed to prepare data for saving: ' + jsonError.message);
+            return;
+        }
+        
+        // Step 12: Save to localStorage
+        console.log('Step 12: Saving to localStorage...');
+        try {
+            localStorage.setItem(key, jsonString);
+            console.log('Saved to localStorage with key:', key);
+            
+            // Verify the save
+            const retrieved = localStorage.getItem(key);
+            if (retrieved !== jsonString) {
+                throw new Error('Save verification failed');
+            }
+            console.log('Save verification passed');
+        } catch (saveError) {
+            console.error('localStorage.setItem failed:', saveError);
+            showError('Failed to save to localStorage: ' + saveError.message);
+            return;
+        }
+        
+        // Step 13: Show success and update UI
+        console.log('Step 13: Updating UI...');
         showSuccess('Progress saved successfully!');
         
         // Update the save button to show saved state
@@ -2337,12 +2490,16 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             saveBtn.textContent = 'Saved ✓';
             saveBtn.classList.add('saved');
             saveBtn.disabled = true;
+            console.log('Save button updated');
+        } else {
+            console.log('Save button not found for UI update');
         }
         
         console.log('=== SAVE EXERCISE TRACKING COMPLETE ===');
         
     } catch (error) {
         console.error('Error saving tracking data:', error);
+        console.error('Error stack:', error.stack);
         showError('Failed to save progress: ' + error.message);
     }
 }

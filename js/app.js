@@ -383,6 +383,9 @@ function loadPage(page, params = {}) {
         case 'workout-calendar':
             loadWorkoutCalendarPage(mainContent);
             break;
+        case 'progress':
+            loadProgressPage(mainContent);
+            break;
         default:
             loadExercisesPage(mainContent);
     }
@@ -756,8 +759,8 @@ function loadWorkoutCalendarPage(container) {
             <div class="calendar-header-main">
                 <div class="calendar-title">
                     <h1>Schedule</h1>
-                </div>
-                
+            </div>
+            
                 <div class="calendar-controls">
                     <div class="calendar-nav">
                         <button class="btn btn-outline" onclick="previousPeriod()">
@@ -769,8 +772,8 @@ function loadWorkoutCalendarPage(container) {
                         <button class="btn btn-outline" onclick="nextPeriod()">
                             <span>&gt;</span>
                         </button>
-                    </div>
-                    
+                </div>
+                
                     <div class="calendar-view-toggle">
                         <button class="view-toggle-btn active" onclick="switchCalendarView('day')">Day</button>
                         <button class="view-toggle-btn" onclick="switchCalendarView('week')">Week</button>
@@ -789,6 +792,217 @@ function loadWorkoutCalendarPage(container) {
     `;
     
     generateCalendar();
+}
+
+// Progress page
+function loadProgressPage(container) {
+    container.innerHTML = `
+        <div class="progress-page">
+            <div class="page-header">
+                <h1>WORKOUT PLANNER</h1>
+                <p>Track your progress for any date</p>
+            </div>
+            
+            <div class="progress-content">
+                <div class="date-selector">
+                    <label for="progressDate">Select Date:</label>
+                    <input type="date" id="progressDate" onchange="loadProgressForDate(this.value)">
+                </div>
+                
+                <div id="progressWorkout" class="progress-workout" style="display: none;">
+                    <div class="workout-info">
+                        <div class="info-field">
+                            <label>DATE:</label>
+                            <input type="text" id="workoutDate" readonly>
+                        </div>
+                        <div class="info-field">
+                            <label>FOCUS AREA:</label>
+                            <input type="text" id="focusArea" readonly>
+                        </div>
+                        <div class="info-field">
+                            <label>DURATION:</label>
+                            <input type="text" id="duration" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-table">
+                        <div class="table-header">
+                            <div class="exercise-header">EXERCISE</div>
+                            <div class="set-headers">
+                                <div class="set-header set-1">SET 1</div>
+                                <div class="set-header set-2">SET 2</div>
+                                <div class="set-header set-3">SET 3</div>
+                                <div class="set-header set-4">SET 4</div>
+                                <div class="set-header set-5">SET 5</div>
+                            </div>
+                        </div>
+                        <div class="table-subheader">
+                            <div class="exercise-subheader"></div>
+                            <div class="set-subheaders">
+                                <div class="set-subheader">WEIGHT</div>
+                                <div class="set-subheader">REPS</div>
+                                <div class="set-subheader">WEIGHT</div>
+                                <div class="set-subheader">REPS</div>
+                                <div class="set-subheader">WEIGHT</div>
+                                <div class="set-subheader">REPS</div>
+                                <div class="set-subheader">WEIGHT</div>
+                                <div class="set-subheader">REPS</div>
+                                <div class="set-subheader">WEIGHT</div>
+                                <div class="set-subheader">REPS</div>
+                            </div>
+                        </div>
+                        <div id="progressTableBody" class="table-body">
+                            <!-- Exercise rows will be populated here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="noProgressMessage" class="no-progress-message" style="display: none;">
+                    <p>No workout data found for the selected date.</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('progressDate').value = today;
+    loadProgressForDate(today);
+}
+
+// Load progress data for a specific date
+async function loadProgressForDate(dateString) {
+    try {
+        const progressWorkout = document.getElementById('progressWorkout');
+        const noProgressMessage = document.getElementById('noProgressMessage');
+        const tableBody = document.getElementById('progressTableBody');
+        
+        // Get workout data for the selected date
+        const workoutData = await getWorkoutDataForDate(dateString);
+        
+        if (workoutData && workoutData.exercises && workoutData.exercises.length > 0) {
+            // Show workout data
+            progressWorkout.style.display = 'block';
+            noProgressMessage.style.display = 'none';
+            
+            // Update workout info
+            document.getElementById('workoutDate').value = formatDate(dateString);
+            document.getElementById('focusArea').value = workoutData.programName || 'General';
+            document.getElementById('duration').value = workoutData.duration || 'Not specified';
+            
+            // Generate table rows
+            tableBody.innerHTML = workoutData.exercises.map(exercise => `
+                <div class="exercise-row">
+                    <div class="exercise-name">${exercise.name}</div>
+                    <div class="exercise-sets">
+                        ${Array.from({length: 5}, (_, i) => {
+                            const set = exercise.sets[i] || {};
+                            return `
+                                <div class="set-data">
+                                    <div class="weight-data">${set.weight || ''}</div>
+                                    <div class="reps-data">${set.reps || ''}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            // Show no data message
+            progressWorkout.style.display = 'none';
+            noProgressMessage.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error loading progress:', error);
+        document.getElementById('noProgressMessage').style.display = 'block';
+        document.getElementById('progressWorkout').style.display = 'none';
+    }
+}
+
+// Get workout data for a specific date
+async function getWorkoutDataForDate(dateString) {
+    try {
+        // Check localStorage for saved workout data
+        const workoutKey = `workout_${dateString}`;
+        const savedWorkout = localStorage.getItem(workoutKey);
+        
+        if (savedWorkout) {
+            return JSON.parse(savedWorkout);
+        }
+        
+        // Check for exercise tracking data
+        const trackingKey = `exercise_tracking_${dateString}`;
+        const savedTracking = localStorage.getItem(trackingKey);
+        
+        if (savedTracking) {
+            const trackingData = JSON.parse(savedTracking);
+            const exercises = [];
+            
+            // Convert tracking data to progress format
+            for (const [exerciseId, data] of Object.entries(trackingData)) {
+                const exercise = exercises.find(e => e.id === exerciseId);
+                if (exercise) {
+                    exercise.sets.push(...data.sets);
+                } else {
+                    exercises.push({
+                        id: exerciseId,
+                        name: data.exerciseName || 'Unknown Exercise',
+                        sets: data.sets || []
+                    });
+                }
+            }
+            
+            return {
+                date: dateString,
+                programName: 'Workout',
+                duration: 'Not specified',
+                exercises: exercises
+            };
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error getting workout data:', error);
+        return null;
+    }
+}
+
+// Generate workout display for selected date in Week/Month views
+function generateSelectedDateWorkout() {
+    const dateString = selectedDate.toISOString().split('T')[0];
+    const workout = scheduledWorkouts[dateString];
+    
+    if (!workout) {
+        return `
+            <div class="selected-date-workout">
+                <h3>${selectedDate.toLocaleDateString()}</h3>
+                <p>No workout scheduled for this date.</p>
+                <button class="btn btn-primary" onclick="showProgramSelectionModal()">
+                    Add Workout
+                </button>
+            </div>
+        `;
+    }
+    
+    // Get exercises for this workout
+    const programExercises = getProgramExercises(workout.id);
+    
+    return `
+        <div class="selected-date-workout">
+            <h3>${selectedDate.toLocaleDateString()} - ${workout.name}</h3>
+            <div class="selected-workout-exercises">
+                ${programExercises.map(exercise => `
+                    <div class="selected-exercise">
+                        <h4>${exercise.name}</h4>
+                        <p>${exercise.sets} sets × ${exercise.reps} reps</p>
+                    </div>
+                `).join('')}
+            </div>
+            <button class="btn btn-primary" onclick="showWorkoutDetails('${dateString}')">
+                View Details
+            </button>
+        </div>
+    `;
 }
 
 // Data loading functions
@@ -1805,6 +2019,8 @@ function generateWeekView() {
                     }).join('')}
                 </div>
             </div>
+            
+            ${selectedDate ? generateSelectedDateWorkout() : ''}
         </div>
     `;
 }
@@ -1849,6 +2065,8 @@ function generateMonthView() {
                     `;
                 }).join('')}
             </div>
+            
+            ${selectedDate ? generateSelectedDateWorkout() : ''}
         </div>
     `;
 }

@@ -2577,4 +2577,249 @@ input:checked + .slider:before {
 .scheduled-workout p {
     margin: 0 0 15px 0;
     color: #424242;
+}
+
+/* Progress Page Styles */
+.progress-page {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.progress-content {
+    padding: 24px;
+}
+
+.date-selector {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.date-selector label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.date-selector input {
+    padding: 12px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #ffffff;
+    color: #495057;
+    transition: border-color 0.2s ease;
+}
+
+.date-selector input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.progress-workout {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.workout-info {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.info-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.info-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-field input {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #ffffff;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.progress-table {
+    background: #ffffff;
+}
+
+.table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.exercise-header {
+    padding: 12px 16px;
+    font-weight: 600;
+    color: #495057;
+    background: #e3f2fd;
+    border-right: 1px solid #e9ecef;
+}
+
+.set-headers {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.set-header {
+    padding: 12px 8px;
+    font-weight: 600;
+    color: #ffffff;
+    text-align: center;
+    font-size: 0.85rem;
+}
+
+.set-header.set-1 { background: #ffcdd2; color: #c62828; }
+.set-header.set-2 { background: #bbdefb; color: #1565c0; }
+.set-header.set-3 { background: #e1bee7; color: #7b1fa2; }
+.set-header.set-4 { background: #c8e6c9; color: #2e7d32; }
+.set-header.set-5 { background: #ffccbc; color: #d84315; }
+
+.table-subheader {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.exercise-subheader {
+    padding: 8px 16px;
+    background: #e3f2fd;
+    border-right: 1px solid #e9ecef;
+}
+
+.set-subheaders {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+}
+
+.set-subheader {
+    padding: 6px 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #6c757d;
+    text-align: center;
+    border-right: 1px solid #e9ecef;
+}
+
+.table-body {
+    background: #ffffff;
+}
+
+.exercise-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr;
+    border-bottom: 1px solid #e9ecef;
+    min-height: 60px;
+}
+
+.exercise-name {
+    padding: 16px;
+    font-weight: 500;
+    color: #495057;
+    background: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+.exercise-sets {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+}
+
+.set-data {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    border-right: 1px solid #e9ecef;
+}
+
+.weight-data,
+.reps-data {
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.weight-data {
+    background: #f8f9fa;
+}
+
+.reps-data {
+    background: #ffffff;
+}
+
+.no-progress-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.no-progress-message p {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Selected Date Workout Display for Calendar */
+.selected-date-workout {
+    background: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    padding: 20px;
+}
+
+.selected-date-workout h3 {
+    margin: 0 0 16px 0;
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.selected-workout-exercises {
+    margin-bottom: 16px;
+}
+
+.selected-exercise {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+
+.selected-exercise h4 {
+    margin: 0 0 4px 0;
+    color: #495057;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.selected-exercise p {
+    margin: 0;
+    color: #6c757d;
+    font-size: 0.85rem;
 } 

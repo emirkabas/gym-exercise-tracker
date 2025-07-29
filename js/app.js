@@ -937,16 +937,6 @@ function displayWorkoutPrograms(programs) {
     container.innerHTML = programs.map(program => {
         // Get exercises for this program
         const programExercises = getProgramExercises(program.id);
-        const exercisesList = programExercises.length > 0 ? 
-            programExercises.map(exercise => `
-                <div class="program-exercise-item">
-                    <span class="exercise-name">${exercise.name}</span>
-                    <span class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</span>
-                    <button class="btn btn-danger btn-sm" onclick="removeExerciseFromProgram('${program.id}', ${exercise.id})" title="Remove Exercise">
-                        Remove
-                    </button>
-                </div>
-            `).join('') : '<p class="no-exercises">No exercises added yet</p>';
         
         return `
             <div class="card workout-program-card">
@@ -959,13 +949,7 @@ function displayWorkoutPrograms(programs) {
                 <p><strong>Difficulty:</strong> ${program.difficulty_level || 'Not specified'}</p>
                 <p><strong>Duration:</strong> ${program.duration_weeks || 'Not specified'} weeks</p>
                 <p>${program.description || 'No description available.'}</p>
-                
-                <div class="program-exercises">
-                    <h4>Exercises (${programExercises.length})</h4>
-                    <div class="exercises-list">
-                        ${exercisesList}
-                    </div>
-                </div>
+                <p><strong>Exercises:</strong> ${programExercises.length} exercises</p>
                 
                 <div class="program-actions">
                     <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
@@ -1791,7 +1775,7 @@ function showExerciseSelection(programId, dateString) {
                     </div>
                     
                     <div class="sets-container">
-                        ${generateSetInputs(exercise.sets, 10)}
+                        ${generateSetInputs(exercise.sets, exercise.reps)}
                     </div>
                     
                     <div class="tracking-actions">
@@ -1874,47 +1858,6 @@ function getProgramExercises(programNameOrId) {
 }
 
 // Function removed - no longer needed with simplified calendar flow
-
-function showExerciseTracking(exercise, programId, dateString) {
-    console.log('Showing exercise tracking for:', exercise);
-    
-    const trackingSection = document.getElementById('exerciseTrackingSection');
-    if (!trackingSection) {
-        console.error('Exercise tracking section not found');
-        return;
-    }
-    
-    trackingSection.innerHTML = `
-        <div class="exercise-tracking-card">
-            <h4>${exercise.name}</h4>
-            <p>Target: ${exercise.sets} sets × ${exercise.reps} reps</p>
-            
-            <div class="sets-container">
-                ${generateSetInputs(exercise.sets, exercise.reps)}
-            </div>
-            
-            <div class="tracking-actions">
-                <button class="btn btn-primary" onclick="saveExerciseProgress('${exercise.id}', '${programId}', '${dateString}')">
-                    Save Progress
-                </button>
-                <button class="btn btn-secondary" onclick="resetExerciseTracking()">
-                    Reset
-                </button>
-                <button class="btn btn-outline" onclick="testSaveFunction('${exercise.id}', '${programId}', '${dateString}')" style="font-size: 0.8rem;">
-                    Test Save
-                </button>
-            </div>
-        </div>
-    `;
-    
-    trackingSection.style.display = 'block';
-    console.log('Exercise tracking section displayed');
-    
-    // Add event listeners for auto-fill weight functionality
-    setTimeout(() => {
-        setupWeightAutoFill();
-    }, 100);
-}
 
 function setupWeightAutoFill() {
     const weightInputs = document.querySelectorAll('input[data-set]');
@@ -2780,26 +2723,20 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             return;
         }
         
-        // Find the modal and get actual input data
-        const modal = document.querySelector('.modal');
-        if (!modal) {
-            showError('No exercise tracking modal found');
+        // Find the exercise card directly (not in modal)
+        const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+        if (!exerciseCard) {
+            showError('Exercise card not found');
             return;
         }
         
-        const modalContent = modal.querySelector('.modal-content');
-        if (!modalContent) {
-            showError('Exercise tracking modal content not found');
-            return;
-        }
-        
-        // Get exercise name from modal
-        const exerciseNameElement = modalContent.querySelector('h2');
+        // Get exercise name from card
+        const exerciseNameElement = exerciseCard.querySelector('h4');
         const exerciseName = exerciseNameElement ? validators.sanitizeHtml(exerciseNameElement.textContent) : 'Unknown Exercise';
         
-        // Find all weight and reps inputs specifically
-        const weightInputs = modalContent.querySelectorAll('.weight-input');
-        const repsInputs = modalContent.querySelectorAll('.reps-input');
+        // Find all weight and reps inputs in this specific card
+        const weightInputs = exerciseCard.querySelectorAll('input[data-field="weight"]');
+        const repsInputs = exerciseCard.querySelectorAll('input[data-field="reps"]');
         
         const trackingData = {};
         let hasData = false;
@@ -2861,7 +2798,7 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             showSuccess('Exercise progress saved successfully!');
             
             // Update the save button
-            const saveBtn = modalContent.querySelector('.btn-secondary');
+            const saveBtn = exerciseCard.querySelector('.btn-primary');
             if (saveBtn && saveBtn.textContent.includes('Save Progress')) {
                 saveBtn.textContent = 'Saved ✓';
                 saveBtn.classList.add('saved');

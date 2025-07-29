@@ -1958,68 +1958,7 @@ input:checked + .slider:before {
     min-height: calc(100vh - 100px); /* Ensure minimum height */
 }
 
-/* Workout Programs Page Exercise Items */
-.program-exercises {
-    margin: 20px 0;
-    padding: 15px;
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 8px;
-}
-
-.program-exercises h4 {
-    color: #ffffff;
-    margin: 0 0 15px 0;
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-
-.program-exercise-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 15px;
-    margin-bottom: 8px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 6px;
-    transition: all 0.3s ease;
-}
-
-.program-exercise-item:hover {
-    background: rgba(255,255,255,0.08);
-    border-color: rgba(255,255,255,0.2);
-}
-
-.program-exercise-item:last-child {
-    margin-bottom: 0;
-}
-
-.exercise-name {
-    color: #ffffff;
-    font-weight: 500;
-    flex: 1;
-    padding-right: 15px;
-}
-
-.exercise-details {
-    color: rgba(255,255,255,0.7);
-    font-size: 0.9rem;
-    margin-right: 15px;
-}
-
-.btn-sm {
-    padding: 4px 12px;
-    font-size: 0.8rem;
-    min-width: 70px;
-}
-
-.no-exercises {
-    color: rgba(255,255,255,0.5);
-    font-style: italic;
-    text-align: center;
-    padding: 10px;
-}
+/* Removed unnecessary exercise display styles - exercises only shown in View Details */
 
 .exercise-modal h2 {
     margin-bottom: 20px;

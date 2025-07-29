@@ -864,31 +864,57 @@ async function loadProgramExercises(programId, dateString = null) {
 
 async function loadProgramExercisesForPage(programId, dateString = null) {
     try {
-        const programExercises = await loadProgramExercises(programId, dateString);
-        const allExercises = await fetchExercises();
+        const program = workoutPrograms.find(p => p.id == programId);
+        if (!program) {
+            console.error('Program not found:', programId);
+            return;
+        }
         
-        // Merge exercise details
-        const exercisesWithDetails = programExercises.map(programExercise => {
-            const exerciseDetails = allExercises.find(e => e.id === programExercise.exercise_id);
-            return {
-                ...programExercise,
-                ...exerciseDetails,
-            };
-        });
+        // Get exercises for this program
+        const programExercises = getProgramExercises(programId);
+        console.log('Program exercises:', programExercises);
         
         const container = document.getElementById('programExercisesList');
         if (container) {
-            container.innerHTML = exercisesWithDetails.map(exercise => `
-                <div class="card exercise-card" onclick="navigateToPage('exercise-details', { exerciseId: ${exercise.exercise_id} })">
-                    <h3>${exercise.exercise_name}</h3>
-                    <p><strong>Sets:</strong> ${exercise.sets} | <strong>Reps:</strong> ${exercise.reps}</p>
-                    ${exercise.rest_time_seconds ? `<p><strong>Rest:</strong> ${exercise.rest_time_seconds}s</p>` : ''}
-                    ${exercise.description ? `<p>${exercise.description}</p>` : ''}
-                    <div class="exercise-card-overlay">
-                        <span>Click to view details</span>
+            if (programExercises.length === 0) {
+                container.innerHTML = `
+                    <div class="no-exercises">
+                        <h3>No exercises in this program yet</h3>
+                        <p>Add some exercises to get started!</p>
+                        <button class="btn btn-primary" onclick="showAddExerciseModal('${programId}')">
+                            Add Exercises
+                        </button>
                     </div>
-                </div>
-            `).join('');
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="exercises-header">
+                        <h3>Exercises in this program (${programExercises.length})</h3>
+                        <button class="btn btn-primary" onclick="showAddExerciseModal('${programId}')">
+                            Add More Exercises
+                        </button>
+                    </div>
+                    <div class="exercises-list">
+                        ${programExercises.map(exercise => `
+                            <div class="exercise-item">
+                                <div class="exercise-info">
+                                    <h4>${exercise.name}</h4>
+                                    <p><strong>Sets:</strong> ${exercise.sets} | <strong>Reps:</strong> ${exercise.reps}</p>
+                                    ${exercise.muscleGroup ? `<p><strong>Muscle Group:</strong> ${exercise.muscleGroup}</p>` : ''}
+                                </div>
+                                <div class="exercise-actions">
+                                    <button class="btn btn-secondary" onclick="navigateToPage('exercise-details', { exerciseId: ${exercise.id} })">
+                                        View Details
+                                    </button>
+                                    <button class="btn btn-danger" onclick="removeExerciseFromProgram('${programId}', ${exercise.id})">
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
         }
     } catch (error) {
         console.error('Error loading program exercises for page:', error);
@@ -2895,11 +2921,60 @@ function addExerciseToProgram(programId, exerciseId, button) {
     }, 2000);
 }
 
+// Function to remove exercise from program
+function removeExerciseFromProgram(programId, exerciseId) {
+    const program = workoutPrograms.find(p => p.id === programId);
+    
+    if (!program) {
+        showError('Program not found');
+        return;
+    }
+    
+    if (!program.exercises) {
+        showError('No exercises found in this program');
+        return;
+    }
+    
+    // Find and remove the exercise
+    const exerciseIndex = program.exercises.findIndex(e => e.exercise_id === exerciseId);
+    if (exerciseIndex === -1) {
+        showError('Exercise not found in this program');
+        return;
+    }
+    
+    const removedExercise = program.exercises[exerciseIndex];
+    program.exercises.splice(exerciseIndex, 1);
+    
+    // Save to localStorage
+    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
+    
+    showSuccess(`"${removedExercise.exercise_name}" removed from "${program.name}"!`);
+    
+    // Refresh the program details page if we're on it
+    const currentPage = document.querySelector('.page-content');
+    if (currentPage && currentPage.querySelector('.page-title') && 
+        currentPage.querySelector('.page-title').textContent === program.name) {
+        loadProgramExercisesForPage(programId);
+    }
+}
+
 // Update getProgramExercises to use program exercises if available
-function getProgramExercises(programName) {
-    // First check if we have a program with exercises
-    const program = workoutPrograms.find(p => p.name === programName);
+function getProgramExercises(programNameOrId) {
+    // First check if we have a program with exercises by ID
+    let program = null;
+    
+    // Try to find by ID first (if it's a number or looks like an ID)
+    if (typeof programNameOrId === 'number' || (typeof programNameOrId === 'string' && !isNaN(programNameOrId))) {
+        program = workoutPrograms.find(p => p.id == programNameOrId);
+    }
+    
+    // If not found by ID, try by name
+    if (!program) {
+        program = workoutPrograms.find(p => p.name === programNameOrId);
+    }
+    
     if (program && program.exercises && program.exercises.length > 0) {
+        console.log(`Found ${program.exercises.length} exercises for program "${program.name}"`);
         return program.exercises.map(ex => ({
             id: ex.exercise_id,
             name: ex.exercise_name,
@@ -2910,6 +2985,7 @@ function getProgramExercises(programName) {
     }
     
     // Fallback to mock exercises based on program name
+    const programName = program ? program.name : programNameOrId;
     switch(programName) {
         case 'Cardio & Strength Mix':
             return [
@@ -2941,4 +3017,4 @@ function getProgramExercises(programName) {
                 { id: 17, name: 'Plank', sets: 3, reps: 30 }
             ];
     }
-} // Force redeploy - Mon Jul 28 14:45:08 CEST 2025
+}

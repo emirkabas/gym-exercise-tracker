@@ -1732,6 +1732,112 @@ input:checked + .slider:before {
     overflow-y: auto;
 }
 
+/* Workout Program Details Page Styles */
+.program-info {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.exercises-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.exercises-header h3 {
+    margin: 0;
+    color: #ffffff;
+}
+
+.exercises-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.exercise-item {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.exercise-item:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.exercise-info {
+    flex: 1;
+    padding-right: 20px;
+}
+
+.exercise-info h4 {
+    color: #ffffff;
+    margin: 0 0 10px 0;
+    font-weight: 600;
+}
+
+.exercise-info p {
+    color: rgba(255,255,255,0.8);
+    margin: 5px 0;
+    font-size: 0.9rem;
+}
+
+.exercise-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.exercise-actions .btn {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.no-exercises {
+    text-align: center;
+    padding: 40px 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+.no-exercises h3 {
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+.no-exercises p {
+    color: rgba(255,255,255,0.7);
+    margin-bottom: 20px;
+}
+
+/* Fix scrolling issue for program details page */
+.page-content {
+    overflow-y: auto;
+    height: 100vh;
+    padding-bottom: 100px; /* Add extra padding at bottom */
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: calc(100vh - 100px); /* Ensure minimum height */
+}
+
 .exercise-modal h2 {
     margin-bottom: 20px;
     color: #ffffff;

@@ -641,24 +641,47 @@ function displayWorkoutPrograms(programs) {
         return;
     }
     
-    container.innerHTML = programs.map(program => `
-        <div class="card workout-program-card">
-            <div class="program-header">
-                <h3>${program.name}</h3>
-                <button class="delete-btn" onclick="deleteWorkoutProgram(${program.id}, '${program.name}')" title="Delete Program">
-                    <span>&times;</span>
-                </button>
+    container.innerHTML = programs.map(program => {
+        // Get exercises for this program
+        const programExercises = getProgramExercises(program.id);
+        const exercisesList = programExercises.length > 0 ? 
+            programExercises.map(exercise => `
+                <div class="program-exercise-item">
+                    <span class="exercise-name">${exercise.name}</span>
+                    <span class="exercise-details">${exercise.sets} sets × ${exercise.reps} reps</span>
+                    <button class="btn btn-danger btn-sm" onclick="removeExerciseFromProgram('${program.id}', ${exercise.id})" title="Remove Exercise">
+                        Remove
+                    </button>
+                </div>
+            `).join('') : '<p class="no-exercises">No exercises added yet</p>';
+        
+        return `
+            <div class="card workout-program-card">
+                <div class="program-header">
+                    <h3>${program.name}</h3>
+                    <button class="delete-btn" onclick="deleteWorkoutProgram(${program.id}, '${program.name}')" title="Delete Program">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <p><strong>Difficulty:</strong> ${program.difficulty_level || 'Not specified'}</p>
+                <p><strong>Duration:</strong> ${program.duration_weeks || 'Not specified'} weeks</p>
+                <p>${program.description || 'No description available.'}</p>
+                
+                <div class="program-exercises">
+                    <h4>Exercises (${programExercises.length})</h4>
+                    <div class="exercises-list">
+                        ${exercisesList}
+                    </div>
+                </div>
+                
+                <div class="program-actions">
+                    <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
+                    <button class="btn btn-outline" onclick="editWorkoutProgram(${program.id})">Edit</button>
+                    <button class="btn btn-primary" onclick="showAddExerciseModal(${program.id})">Add Exercise</button>
+                </div>
             </div>
-            <p><strong>Difficulty:</strong> ${program.difficulty_level || 'Not specified'}</p>
-            <p><strong>Duration:</strong> ${program.duration_weeks || 'Not specified'} weeks</p>
-            <p>${program.description || 'No description available.'}</p>
-            <div class="program-actions">
-                <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
-                <button class="btn btn-outline" onclick="editWorkoutProgram(${program.id})">Edit</button>
-                <button class="btn btn-primary" onclick="showAddExerciseModal(${program.id})">Add Exercise</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Filter functions
@@ -2428,31 +2451,77 @@ async function loadExerciseTrackingData(exerciseId, dateString) {
 
 async function saveExerciseTracking(exerciseId, dateString, programId) {
     try {
-        console.log('=== SIMPLE SAVE EXERCISE TRACKING START ===');
+        console.log('=== SAVE EXERCISE TRACKING START ===');
         console.log('Parameters:', { exerciseId, dateString, programId });
         
-        // SIMPLE APPROACH: Just save some test data to prove it works
-        const testData = {
-            exerciseId: exerciseId || 'test_exercise',
-            programId: programId || 'test_program',
-            date: dateString || new Date().toISOString().split('T')[0],
-            exerciseName: 'Test Exercise',
-            sets: {
-                1: { weight: 135, reps: 12 },
-                2: { weight: 135, reps: 10 },
-                3: { weight: 135, reps: 8 }
-            },
+        // Find the modal and get actual input data
+        const modal = document.querySelector('.modal');
+        if (!modal) {
+            console.error('No modal found');
+            showError('No exercise tracking modal found');
+            return;
+        }
+        
+        const modalContent = modal.querySelector('.modal-content');
+        if (!modalContent) {
+            console.error('No modal content found');
+            showError('Exercise tracking modal content not found');
+            return;
+        }
+        
+        // Get exercise name from modal
+        const exerciseNameElement = modalContent.querySelector('h2');
+        const exerciseName = exerciseNameElement ? exerciseNameElement.textContent : 'Unknown Exercise';
+        
+        // Find all number inputs in the modal
+        const numberInputs = modalContent.querySelectorAll('input[type="number"]');
+        console.log('Found number inputs:', numberInputs.length);
+        
+        const trackingData = {};
+        let hasData = false;
+        
+        // Process inputs in pairs (weight, reps)
+        for (let i = 0; i < numberInputs.length; i += 2) {
+            const weightInput = numberInputs[i];
+            const repsInput = numberInputs[i + 1];
+            const setNumber = Math.floor(i / 2) + 1;
+            
+            if (weightInput && repsInput) {
+                const weight = weightInput.value.trim();
+                const reps = repsInput.value.trim();
+                
+                console.log(`Set ${setNumber}:`, { weight, reps });
+                
+                if (weight !== '' || reps !== '') {
+                    trackingData[setNumber] = {
+                        weight: weight !== '' ? parseInt(weight) || 0 : 0,
+                        reps: reps !== '' ? parseInt(reps) || 0 : 0
+                    };
+                    hasData = true;
+                }
+            }
+        }
+        
+        if (!hasData) {
+            showError('No data to save. Please enter some values.');
+            return;
+        }
+        
+        // Create save data
+        const saveData = {
+            exerciseId: exerciseId,
+            programId: programId,
+            date: dateString,
+            exerciseName: exerciseName,
+            sets: trackingData,
             timestamp: new Date().toISOString()
         };
         
-        console.log('Test data to save:', testData);
+        console.log('Save data:', saveData);
         
-        // Save to localStorage with a simple key
-        const key = `simple_save_${Date.now()}`;
-        const jsonString = JSON.stringify(testData);
-        
-        console.log('Saving with key:', key);
-        console.log('JSON string length:', jsonString.length);
+        // Save to localStorage
+        const key = `exercise_tracking_${exerciseId}_${dateString}`;
+        const jsonString = JSON.stringify(saveData);
         
         localStorage.setItem(key, jsonString);
         
@@ -2460,29 +2529,27 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         const retrieved = localStorage.getItem(key);
         if (retrieved === jsonString) {
             console.log('✅ SAVE SUCCESSFUL!');
-            showSuccess('Test data saved successfully!');
+            showSuccess('Exercise progress saved successfully!');
             
-            // Try to update any save button we can find
-            const allButtons = document.querySelectorAll('button');
-            allButtons.forEach(btn => {
-                if (btn.textContent.includes('Save') || btn.textContent.includes('Progress')) {
-                    btn.textContent = 'Saved ✓';
-                    btn.classList.add('saved');
-                    btn.disabled = true;
-                    console.log('Updated button:', btn.textContent);
-                }
-            });
+            // Update the save button
+            const saveBtn = modalContent.querySelector('.btn-primary, .btn-secondary');
+            if (saveBtn) {
+                saveBtn.textContent = 'Saved ✓';
+                saveBtn.classList.add('saved');
+                saveBtn.disabled = true;
+                console.log('Updated save button');
+            }
             
         } else {
             console.log('❌ SAVE FAILED - Verification failed');
             showError('Save verification failed');
         }
         
-        console.log('=== SIMPLE SAVE COMPLETE ===');
+        console.log('=== SAVE EXERCISE TRACKING COMPLETE ===');
         
     } catch (error) {
-        console.error('Simple save failed:', error);
-        showError('Simple save failed: ' + error.message);
+        console.error('Save failed:', error);
+        showError('Save failed: ' + error.message);
     }
 }
 

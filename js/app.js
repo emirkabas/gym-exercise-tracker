@@ -1,4 +1,5 @@
 // Gym Exercise Tracker - Netlify App JavaScript
+// Version: 2025-07-29 - Critical Fixes & Performance Optimizations
 
 // Supabase configuration
 const SUPABASE_URL = 'https://sbrahbuoulzroqlzfdfz.supabase.co';
@@ -258,6 +259,9 @@ function showPageLoading(container, message = 'Loading...') {
 
 function initializeApp() {
     try {
+        // Show version in console for debugging
+        console.log('🚀 Gym Exercise Tracker v2025-07-29 - Critical Fixes & Performance Optimizations');
+        
         setupNavigation();
         loadPage(currentPage);
         loadInitialData().finally(() => {

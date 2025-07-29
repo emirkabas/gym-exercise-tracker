@@ -7,6 +7,110 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Data caching system
+const cache = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+function getCachedData(key) {
+    const cached = cache.get(key);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+    return null;
+}
+
+function setCachedData(key, data) {
+    cache.set(key, {
+        data,
+        timestamp: Date.now()
+    });
+}
+
+function clearCache() {
+    cache.clear();
+}
+
+function clearExpiredCache() {
+    const now = Date.now();
+    for (const [key, value] of cache.entries()) {
+        if (now - value.timestamp > CACHE_DURATION) {
+            cache.delete(key);
+        }
+    }
+}
+
+// Clear expired cache every minute
+setInterval(clearExpiredCache, 60 * 1000);
+
+// Offline detection and handling
+let isOnline = navigator.onLine;
+
+function updateOnlineStatus() {
+    isOnline = navigator.onLine;
+    if (isOnline) {
+        hideOfflineMessage();
+        // Retry failed operations when back online
+        retryFailedOperations();
+    } else {
+        showOfflineMessage();
+    }
+}
+
+function showOfflineMessage() {
+    let offlineBanner = document.getElementById('offline-banner');
+    if (!offlineBanner) {
+        offlineBanner = document.createElement('div');
+        offlineBanner.id = 'offline-banner';
+        offlineBanner.className = 'offline-banner';
+        offlineBanner.innerHTML = `
+            <div class="offline-content">
+                <span class="offline-icon">📡</span>
+                <span>You're offline. Some features may be limited.</span>
+            </div>
+        `;
+        document.body.appendChild(offlineBanner);
+    }
+    offlineBanner.style.display = 'block';
+}
+
+function hideOfflineMessage() {
+    const offlineBanner = document.getElementById('offline-banner');
+    if (offlineBanner) {
+        offlineBanner.style.display = 'none';
+    }
+}
+
+// Failed operations queue for retry
+const failedOperations = [];
+
+function addFailedOperation(operation) {
+    failedOperations.push(operation);
+}
+
+async function retryFailedOperations() {
+    if (failedOperations.length === 0) return;
+    
+    showLoading('Syncing data...');
+    
+    const operations = [...failedOperations];
+    failedOperations.length = 0; // Clear the array
+    
+    for (const operation of operations) {
+        try {
+            await operation();
+        } catch (error) {
+            // Re-add to queue if it still fails
+            failedOperations.push(operation);
+        }
+    }
+    
+    hideLoading();
+}
+
+// Listen for online/offline events
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
 // App state
 let currentPage = 'workout-calendar';
 let exercises = [];
@@ -20,17 +124,183 @@ let selectedDate = new Date(); // Today's date by default
 let calendarView = 'month'; // 'day', 'week', 'month'
 let showWorkoutToday = false;
 let selectedProgram = '';
-let scheduledWorkouts = {}; // Store scheduled workouts
+let scheduledWorkouts = new Map(); // Store scheduled workouts (optimized)
+
+// Input validation and sanitization
+const validators = {
+    // Sanitize HTML to prevent XSS
+    sanitizeHtml: (str) => {
+        if (typeof str !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    },
+    
+    // Validate email format
+    isValidEmail: (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    },
+    
+    // Validate number input
+    isValidNumber: (value, min = 0, max = 9999) => {
+        const num = parseFloat(value);
+        return !isNaN(num) && num >= min && num <= max;
+    },
+    
+    // Validate date format
+    isValidDate: (dateString) => {
+        const date = new Date(dateString);
+        return date instanceof Date && !isNaN(date);
+    },
+    
+    // Validate required fields
+    isRequired: (value) => {
+        return value !== null && value !== undefined && value.toString().trim() !== '';
+    },
+    
+    // Validate string length
+    isValidLength: (str, min = 1, max = 255) => {
+        return str && str.length >= min && str.length <= max;
+    }
+};
+
+// Data validation schemas
+const schemas = {
+    exercise: {
+        name: (value) => validators.isRequired(value) && validators.isValidLength(value, 1, 100),
+        description: (value) => !value || validators.isValidLength(value, 0, 1000),
+        muscle_group_id: (value) => validators.isRequired(value) && validators.isValidNumber(value, 1),
+        difficulty_level: (value) => ['beginner', 'intermediate', 'advanced'].includes(value),
+        sets: (value) => validators.isValidNumber(value, 1, 20),
+        reps: (value) => validators.isValidNumber(value, 1, 100)
+    },
+    
+    workoutProgram: {
+        name: (value) => validators.isRequired(value) && validators.isValidLength(value, 1, 100),
+        description: (value) => !value || validators.isValidLength(value, 0, 500),
+        difficulty_level: (value) => ['beginner', 'intermediate', 'advanced'].includes(value),
+        duration_weeks: (value) => validators.isValidNumber(value, 1, 52)
+    }
+};
+
+// Validate data against schema
+function validateData(data, schema) {
+    const errors = [];
+    
+    for (const [field, validator] of Object.entries(schema)) {
+        if (!validator(data[field])) {
+            errors.push(`Invalid ${field}: ${data[field]}`);
+        }
+    }
+    
+    return {
+        isValid: errors.length === 0,
+        errors
+    };
+}
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
+    showLoading('Initializing app...');
     initializeApp();
 });
 
+// Loading state management
+let isLoading = false;
+const loadingStates = new Map();
+
+function showLoading(message = 'Loading...', id = 'global') {
+    isLoading = true;
+    loadingStates.set(id, true);
+    
+    // Create or update loading overlay
+    let loadingOverlay = document.getElementById('loading-overlay');
+    if (!loadingOverlay) {
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.id = 'loading-overlay';
+        loadingOverlay.className = 'loading-overlay';
+        loadingOverlay.innerHTML = `
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p class="loading-message">${message}</p>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+    } else {
+        loadingOverlay.querySelector('.loading-message').textContent = message;
+    }
+    
+    loadingOverlay.style.display = 'flex';
+}
+
+function hideLoading(id = 'global') {
+    loadingStates.delete(id);
+    if (loadingStates.size === 0) {
+        isLoading = false;
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'none';
+        }
+    }
+}
+
+function showPageLoading(container, message = 'Loading...') {
+    if (container) {
+        container.innerHTML = `
+            <div class="page-loading">
+                <div class="spinner"></div>
+                <p>${message}</p>
+            </div>
+        `;
+    }
+}
+
 function initializeApp() {
-    setupNavigation();
-    loadPage(currentPage);
-    loadInitialData();
+    try {
+        setupNavigation();
+        loadPage(currentPage);
+        loadInitialData().finally(() => {
+            hideLoading();
+        });
+    } catch (error) {
+        handleError('Failed to initialize app', error);
+        hideLoading();
+    }
+}
+
+// Error handling system
+function handleError(message, error = null, context = '') {
+    const errorInfo = {
+        message,
+        error: error?.message || error,
+        stack: error?.stack,
+        context,
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href
+    };
+    
+    // Log error for debugging (only in development)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.error('Error:', errorInfo);
+    }
+    
+    // Show user-friendly error message
+    showError(`Something went wrong: ${message}. Please try again or refresh the page.`);
+    
+    // Could send to error tracking service here
+    // sendErrorToService(errorInfo);
+}
+
+// Wrapper for async operations with error handling
+async function safeAsync(operation, errorMessage = 'Operation failed') {
+    try {
+        return await operation();
+    } catch (error) {
+        handleError(errorMessage, error);
+        throw error;
+    }
 }
 
 // Navigation setup
@@ -407,19 +677,35 @@ function loadWorkoutCalendarPage(container) {
 // Data loading functions
 async function loadInitialData() {
     try {
+        showLoading('Loading app data...');
+        
         await Promise.all([
-            loadExercises(),
-            loadMuscleGroups(),
-            loadWorkoutPrograms(),
-            loadUserWorkouts()
+            safeAsync(() => loadExercises(), 'Failed to load exercises'),
+            safeAsync(() => loadMuscleGroups(), 'Failed to load muscle groups'),
+            safeAsync(() => loadWorkoutPrograms(), 'Failed to load workout programs'),
+            safeAsync(() => loadUserWorkouts(), 'Failed to load user workouts')
         ]);
+        
+        // Load scheduled workouts from localStorage
+        loadScheduledWorkouts();
+        
     } catch (error) {
-        console.error('Error loading initial data:', error);
+        handleError('Failed to load initial data', error);
     }
 }
 
 async function loadExercises() {
     try {
+        // Check cache first
+        const cached = getCachedData('exercises');
+        if (cached) {
+            exercises = cached;
+            if (currentPage === 'exercises') {
+                displayExercises(exercises);
+            }
+            return;
+        }
+        
         const { data, error } = await supabase
             .from('exercises')
             .select('*, muscle_groups(name)')
@@ -432,12 +718,15 @@ async function loadExercises() {
             muscle_group_name: e.muscle_groups?.name || ''
         }));
         
+        // Cache the data
+        setCachedData('exercises', exercises);
+        
         if (currentPage === 'exercises') {
             displayExercises(exercises);
         }
     } catch (error) {
-        console.error('Error loading exercises:', error);
-        showError('Failed to load exercises');
+        handleError('Failed to load exercises', error);
+        exercises = [];
     }
 }
 
@@ -1232,9 +1521,51 @@ function generateMonthView() {
 
 function checkForWorkout(year, month, day) {
     const dateString = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    return userWorkouts.some(workout => 
+    return scheduledWorkouts.has(dateString) || userWorkouts.some(workout => 
         workout.workout_days && Array.isArray(workout.workout_days) && workout.workout_days.includes(dateString)
     );
+}
+
+// Optimized workout scheduling
+function scheduleWorkout(dateString, programId) {
+    if (!validators.isValidDate(dateString)) {
+        throw new Error('Invalid date format');
+    }
+    scheduledWorkouts.set(dateString, programId);
+    saveScheduledWorkouts();
+}
+
+function removeScheduledWorkout(dateString) {
+    scheduledWorkouts.delete(dateString);
+    saveScheduledWorkouts();
+}
+
+function getScheduledWorkout(dateString) {
+    return scheduledWorkouts.get(dateString);
+}
+
+function saveScheduledWorkouts() {
+    try {
+        const data = Object.fromEntries(scheduledWorkouts);
+        localStorage.setItem('scheduledWorkouts', JSON.stringify(data));
+    } catch (error) {
+        handleError('Failed to save scheduled workouts', error);
+    }
+}
+
+function loadScheduledWorkouts() {
+    try {
+        const data = localStorage.getItem('scheduledWorkouts');
+        if (data) {
+            const parsed = JSON.parse(data);
+            scheduledWorkouts.clear();
+            Object.entries(parsed).forEach(([date, programId]) => {
+                scheduledWorkouts.set(date, programId);
+            });
+        }
+    } catch (error) {
+        handleError('Failed to load scheduled workouts', error);
+    }
 }
 
 function selectDate(year, month, day) {
@@ -2451,31 +2782,31 @@ async function loadExerciseTrackingData(exerciseId, dateString) {
 
 async function saveExerciseTracking(exerciseId, dateString, programId) {
     try {
-        console.log('=== SAVE EXERCISE TRACKING START ===');
-        console.log('Parameters:', { exerciseId, dateString, programId });
+        // Validate inputs
+        if (!validators.isRequired(exerciseId) || !validators.isRequired(dateString)) {
+            showError('Missing required data for saving');
+            return;
+        }
         
         // Find the modal and get actual input data
         const modal = document.querySelector('.modal');
         if (!modal) {
-            console.error('No modal found');
             showError('No exercise tracking modal found');
             return;
         }
         
         const modalContent = modal.querySelector('.modal-content');
         if (!modalContent) {
-            console.error('No modal content found');
             showError('Exercise tracking modal content not found');
             return;
         }
         
         // Get exercise name from modal
         const exerciseNameElement = modalContent.querySelector('h2');
-        const exerciseName = exerciseNameElement ? exerciseNameElement.textContent : 'Unknown Exercise';
+        const exerciseName = exerciseNameElement ? validators.sanitizeHtml(exerciseNameElement.textContent) : 'Unknown Exercise';
         
         // Find all number inputs in the modal
         const numberInputs = modalContent.querySelectorAll('input[type="number"]');
-        console.log('Found number inputs:', numberInputs.length);
         
         const trackingData = {};
         let hasData = false;
@@ -2490,9 +2821,17 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
                 const weight = weightInput.value.trim();
                 const reps = repsInput.value.trim();
                 
-                console.log(`Set ${setNumber}:`, { weight, reps });
-                
                 if (weight !== '' || reps !== '') {
+                    // Validate numbers
+                    if (weight !== '' && !validators.isValidNumber(weight, 0, 1000)) {
+                        showError(`Invalid weight value in set ${setNumber}`);
+                        return;
+                    }
+                    if (reps !== '' && !validators.isValidNumber(reps, 0, 1000)) {
+                        showError(`Invalid reps value in set ${setNumber}`);
+                        return;
+                    }
+                    
                     trackingData[setNumber] = {
                         weight: weight !== '' ? parseInt(weight) || 0 : 0,
                         reps: reps !== '' ? parseInt(reps) || 0 : 0
@@ -2517,8 +2856,6 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             timestamp: new Date().toISOString()
         };
         
-        console.log('Save data:', saveData);
-        
         // Save to localStorage
         const key = `exercise_tracking_${exerciseId}_${dateString}`;
         const jsonString = JSON.stringify(saveData);
@@ -2528,7 +2865,6 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         // Verify the save
         const retrieved = localStorage.getItem(key);
         if (retrieved === jsonString) {
-            console.log('✅ SAVE SUCCESSFUL!');
             showSuccess('Exercise progress saved successfully!');
             
             // Update the save button
@@ -2537,19 +2873,14 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
                 saveBtn.textContent = 'Saved ✓';
                 saveBtn.classList.add('saved');
                 saveBtn.disabled = true;
-                console.log('Updated save button');
             }
             
         } else {
-            console.log('❌ SAVE FAILED - Verification failed');
             showError('Save verification failed');
         }
         
-        console.log('=== SAVE EXERCISE TRACKING COMPLETE ===');
-        
     } catch (error) {
-        console.error('Save failed:', error);
-        showError('Save failed: ' + error.message);
+        handleError('Save failed', error);
     }
 }
 
@@ -3041,7 +3372,6 @@ function getProgramExercises(programNameOrId) {
     }
     
     if (program && program.exercises && program.exercises.length > 0) {
-        console.log(`Found ${program.exercises.length} exercises for program "${program.name}"`);
         return program.exercises.map(ex => ({
             id: ex.exercise_id,
             name: ex.exercise_name,

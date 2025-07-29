@@ -868,6 +868,32 @@ function loadProgressPage(container) {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('progressDate').value = today;
     loadProgressForDate(today);
+    
+    // Add debug button
+    const debugBtn = document.createElement('button');
+    debugBtn.textContent = 'Debug localStorage';
+    debugBtn.onclick = debugLocalStorage;
+    debugBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;';
+    document.body.appendChild(debugBtn);
+}
+
+// Debug function to check localStorage
+function debugLocalStorage() {
+    console.log('=== DEBUG: localStorage ===');
+    const keys = Object.keys(localStorage);
+    const exerciseKeys = keys.filter(key => key.includes('exercise_tracking'));
+    
+    console.log('All localStorage keys:', keys);
+    console.log('Exercise tracking keys:', exerciseKeys);
+    
+    exerciseKeys.forEach(key => {
+        try {
+            const data = localStorage.getItem(key);
+            console.log(`Key: ${key}`, JSON.parse(data));
+        } catch (error) {
+            console.log(`Key: ${key} - Error parsing:`, error);
+        }
+    });
 }
 
 // Load progress data for a specific date
@@ -881,6 +907,7 @@ async function loadProgressForDate(dateString) {
         const workoutData = await getWorkoutDataForDate(dateString);
         
         if (workoutData && workoutData.exercises && workoutData.exercises.length > 0) {
+            console.log('Found workout data:', workoutData);
             // Show workout data
             progressWorkout.style.display = 'block';
             noProgressMessage.style.display = 'none';
@@ -891,22 +918,26 @@ async function loadProgressForDate(dateString) {
             document.getElementById('duration').value = workoutData.duration || 'Not specified';
             
             // Generate table rows
-            tableBody.innerHTML = workoutData.exercises.map(exercise => `
-                <div class="exercise-row">
-                    <div class="exercise-name">${exercise.name}</div>
-                    <div class="exercise-sets">
-                        ${Array.from({length: 5}, (_, i) => {
-                            const set = exercise.sets[i] || {};
-                            return `
-                                <div class="set-data">
-                                    <div class="weight-data">${set.weight || ''}</div>
-                                    <div class="reps-data">${set.reps || ''}</div>
-                                </div>
-                            `;
-                        }).join('')}
+            tableBody.innerHTML = workoutData.exercises.map(exercise => {
+                console.log('Rendering exercise:', exercise);
+                return `
+                    <div class="exercise-row">
+                        <div class="exercise-name">${exercise.name}</div>
+                        <div class="exercise-sets">
+                            ${Array.from({length: 5}, (_, i) => {
+                                const set = exercise.sets[i] || {};
+                                console.log(`Set ${i + 1}:`, set);
+                                return `
+                                    <div class="set-data">
+                                        <div class="weight-data">${set.weight || ''}</div>
+                                        <div class="reps-data">${set.reps || ''}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         } else {
             // Show no data message
             progressWorkout.style.display = 'none';
@@ -922,29 +953,46 @@ async function loadProgressForDate(dateString) {
 // Get workout data for a specific date
 async function getWorkoutDataForDate(dateString) {
     try {
-        // Check localStorage for saved workout data
-        const workoutKey = `workout_${dateString}`;
-        const savedWorkout = localStorage.getItem(workoutKey);
+        console.log('Loading progress for date:', dateString);
         
-        if (savedWorkout) {
-            return JSON.parse(savedWorkout);
+        // Check for scheduled workout first
+        const scheduledWorkout = scheduledWorkouts[dateString];
+        let programName = 'General Workout';
+        let exercises = [];
+        
+        if (scheduledWorkout) {
+            programName = scheduledWorkout.name;
+            // Get exercises for this program
+            exercises = getProgramExercises(scheduledWorkout.id);
         }
         
-        // Check for exercise tracking data
+        // Check for saved exercise tracking data
         const trackingKey = `exercise_tracking_${dateString}`;
         const savedTracking = localStorage.getItem(trackingKey);
         
         if (savedTracking) {
+            console.log('Found saved tracking data:', savedTracking);
             const trackingData = JSON.parse(savedTracking);
-            const exercises = [];
             
             // Convert tracking data to progress format
+            const progressExercises = [];
+            
             for (const [exerciseId, data] of Object.entries(trackingData)) {
-                const exercise = exercises.find(e => e.id === exerciseId);
+                console.log('Processing exercise:', exerciseId, data);
+                
+                // Find exercise name from the exercises list
+                const exercise = exercises.find(e => e.id == exerciseId) || 
+                               exercises.find(e => e.name === data.exerciseName);
+                
                 if (exercise) {
-                    exercise.sets.push(...data.sets);
+                    progressExercises.push({
+                        id: exerciseId,
+                        name: exercise.name,
+                        sets: data.sets || []
+                    });
                 } else {
-                    exercises.push({
+                    // Fallback if exercise not found in program
+                    progressExercises.push({
                         id: exerciseId,
                         name: data.exerciseName || 'Unknown Exercise',
                         sets: data.sets || []
@@ -954,9 +1002,27 @@ async function getWorkoutDataForDate(dateString) {
             
             return {
                 date: dateString,
-                programName: 'Workout',
+                programName: programName,
                 duration: 'Not specified',
-                exercises: exercises
+                exercises: progressExercises
+            };
+        }
+        
+        // If no tracking data but we have a scheduled workout, show the program exercises
+        if (scheduledWorkout && exercises.length > 0) {
+            return {
+                date: dateString,
+                programName: programName,
+                duration: 'Not specified',
+                exercises: exercises.map(exercise => ({
+                    id: exercise.id,
+                    name: exercise.name,
+                    sets: Array.from({length: exercise.sets}, (_, i) => ({
+                        setNumber: i + 1,
+                        weight: '',
+                        reps: ''
+                    }))
+                }))
             };
         }
         
@@ -3353,15 +3419,35 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             timestamp: new Date().toISOString()
         };
         
-        // Save to localStorage
-        const key = `exercise_tracking_${exerciseId}_${dateString}`;
-        const jsonString = JSON.stringify(saveData);
+        // Save to localStorage with both individual exercise key and date-based key
+        const individualKey = `exercise_tracking_${exerciseId}_${dateString}`;
+        const dateKey = `exercise_tracking_${dateString}`;
         
-        localStorage.setItem(key, jsonString);
+        // Save individual exercise data
+        localStorage.setItem(individualKey, JSON.stringify(saveData));
+        
+        // Also save to date-based collection for easy retrieval
+        let dateData = {};
+        try {
+            const existingDateData = localStorage.getItem(dateKey);
+            if (existingDateData) {
+                dateData = JSON.parse(existingDateData);
+            }
+        } catch (error) {
+            console.log('No existing date data found');
+        }
+        
+        // Add this exercise to the date collection
+        dateData[exerciseId] = {
+            exerciseName: exerciseName,
+            sets: Object.values(trackingData)
+        };
+        
+        localStorage.setItem(dateKey, JSON.stringify(dateData));
         
         // Verify the save
-        const retrieved = localStorage.getItem(key);
-        if (retrieved === jsonString) {
+        const retrieved = localStorage.getItem(individualKey);
+        if (retrieved) {
             showSuccess('Exercise progress saved successfully!');
         
             // Update the save button

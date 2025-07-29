@@ -1838,6 +1838,78 @@ function checkLocalStorage() {
     }
 }
 
+// Function to check modal structure
+function checkModalStructure() {
+    try {
+        console.log('=== MODAL STRUCTURE CHECK ===');
+        
+        // Check if modal exists
+        const modal = document.querySelector('.modal');
+        console.log('Modal found:', modal);
+        
+        if (!modal) {
+            console.log('❌ No modal found');
+            return false;
+        }
+        
+        // Check modal content
+        const modalContent = modal.querySelector('.modal-content');
+        console.log('Modal content found:', modalContent);
+        
+        if (!modalContent) {
+            console.log('❌ No modal content found');
+            return false;
+        }
+        
+        // Check for inputs
+        const numberInputs = modalContent.querySelectorAll('input[type="number"]');
+        const dataSetInputs = modalContent.querySelectorAll('input[data-set]');
+        const allInputs = modalContent.querySelectorAll('input');
+        
+        console.log('Number inputs:', numberInputs.length);
+        console.log('Data-set inputs:', dataSetInputs.length);
+        console.log('All inputs:', allInputs.length);
+        
+        // Check for buttons
+        const buttons = modalContent.querySelectorAll('button');
+        console.log('Buttons found:', buttons.length);
+        
+        // Check for exercise name
+        const exerciseName = modalContent.querySelector('h2');
+        console.log('Exercise name element:', exerciseName);
+        if (exerciseName) {
+            console.log('Exercise name:', exerciseName.textContent);
+        }
+        
+        // Show modal structure
+        console.log('Modal HTML structure:');
+        console.log(modalContent.innerHTML);
+        
+        return true;
+    } catch (error) {
+        console.error('Modal structure check failed:', error);
+        return false;
+    }
+}
+
+// Function to test save with current modal
+function testModalSave() {
+    try {
+        console.log('=== TEST MODAL SAVE ===');
+        
+        // Get current date
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Call the save function with test parameters
+        saveExerciseTracking('test_exercise', today, 'test_program');
+        
+        return true;
+    } catch (error) {
+        console.error('Test modal save failed:', error);
+        return false;
+    }
+}
+
 function resetExerciseTracking() {
     const inputs = document.querySelectorAll('.set-input');
     inputs.forEach(input => {
@@ -2151,52 +2223,66 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         console.log('=== SAVE EXERCISE TRACKING START ===');
         console.log('Parameters:', { exerciseId, dateString, programId });
         
-        const trackingData = {};
+        // First, let's check if we're in a modal context
+        const modal = document.querySelector('.modal');
+        console.log('Modal found:', modal);
         
-        // Try multiple approaches to find the exercise card
-        let exerciseCard = null;
-        
-        // Approach 1: Look for data-exercise-id attribute
-        exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-        console.log('Approach 1 - data-exercise-id:', exerciseCard);
-        
-        // Approach 2: Look for exercise-tracking-card class
-        if (!exerciseCard) {
-            exerciseCard = document.querySelector('.exercise-tracking-card');
-            console.log('Approach 2 - exercise-tracking-card:', exerciseCard);
-        }
-        
-        // Approach 3: Look for modal content
-        if (!exerciseCard) {
-            exerciseCard = document.querySelector('.exercise-tracking-modal');
-            console.log('Approach 3 - exercise-tracking-modal:', exerciseCard);
-        }
-        
-        // Approach 4: Look for any modal content
-        if (!exerciseCard) {
-            exerciseCard = document.querySelector('.modal-content');
-            console.log('Approach 4 - modal-content:', exerciseCard);
-        }
-        
-        if (!exerciseCard) {
-            console.error('No exercise card found with any approach');
-            showError('Exercise tracking section not found');
+        if (!modal) {
+            console.error('No modal found - this function should be called from within a modal');
+            showError('Save function called outside of exercise tracking modal');
             return;
         }
         
-        // Find all inputs with data-set attribute
-        const inputs = exerciseCard.querySelectorAll('input[data-set]');
-        console.log('Found inputs with data-set:', inputs.length);
+        // Look for the modal content
+        const modalContent = modal.querySelector('.modal-content');
+        console.log('Modal content found:', modalContent);
         
-        // If no inputs with data-set, try all number inputs
-        if (inputs.length === 0) {
-            const numberInputs = exerciseCard.querySelectorAll('input[type="number"]');
-            console.log('Found number inputs:', numberInputs.length);
-            
-            // Group number inputs by sets (assuming they're in order: weight1, reps1, weight2, reps2, etc.)
-            for (let i = 0; i < numberInputs.length; i += 2) {
-                const weightInput = numberInputs[i];
-                const repsInput = numberInputs[i + 1];
+        if (!modalContent) {
+            console.error('No modal content found');
+            showError('Exercise tracking modal content not found');
+            return;
+        }
+        
+        const trackingData = {};
+        
+        // Find all number inputs in the modal
+        const numberInputs = modalContent.querySelectorAll('input[type="number"]');
+        console.log('Found number inputs in modal:', numberInputs.length);
+        
+        // Also find inputs with data-set attribute
+        const dataSetInputs = modalContent.querySelectorAll('input[data-set]');
+        console.log('Found inputs with data-set:', dataSetInputs.length);
+        
+        // Use data-set inputs if available, otherwise use number inputs
+        const inputsToProcess = dataSetInputs.length > 0 ? dataSetInputs : numberInputs;
+        console.log('Processing inputs:', inputsToProcess.length);
+        
+        if (inputsToProcess.length === 0) {
+            console.error('No inputs found in modal');
+            showError('No exercise tracking inputs found');
+            return;
+        }
+        
+        // Process inputs based on their type
+        if (dataSetInputs.length > 0) {
+            // Use data-set approach
+            inputsToProcess.forEach(input => {
+                const set = input.getAttribute('data-set');
+                const field = input.getAttribute('data-field');
+                const value = input.value.trim();
+                
+                console.log('Processing data-set input:', { set, field, value });
+                
+                if (set && field) {
+                    if (!trackingData[set]) trackingData[set] = {};
+                    trackingData[set][field] = value !== '' ? parseInt(value) || 0 : 0;
+                }
+            });
+        } else {
+            // Use number input grouping approach
+            for (let i = 0; i < inputsToProcess.length; i += 2) {
+                const weightInput = inputsToProcess[i];
+                const repsInput = inputsToProcess[i + 1];
                 const setNumber = Math.floor(i / 2) + 1;
                 
                 if (weightInput && repsInput) {
@@ -2207,26 +2293,12 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
                     
                     if (weight !== '' || reps !== '') {
                         trackingData[setNumber] = {
-                            weight: weight !== '' ? parseInt(weight) : 0,
-                            reps: reps !== '' ? parseInt(reps) : 0
+                            weight: weight !== '' ? parseInt(weight) || 0 : 0,
+                            reps: reps !== '' ? parseInt(reps) || 0 : 0
                         };
                     }
                 }
             }
-        } else {
-            // Use the original approach with data-set attributes
-            inputs.forEach(input => {
-                const set = input.getAttribute('data-set');
-                const field = input.getAttribute('data-field');
-                const value = input.value;
-                
-                console.log('Processing input:', { set, field, value });
-                
-                if (set && field) {
-                    if (!trackingData[set]) trackingData[set] = {};
-                    trackingData[set][field] = value;
-                }
-            });
         }
         
         console.log('Collected tracking data:', trackingData);
@@ -2237,12 +2309,18 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             return;
         }
         
-        // Save to localStorage (simpler approach)
+        // Get exercise name from the modal
+        const exerciseNameElement = modalContent.querySelector('h2');
+        const exerciseName = exerciseNameElement ? exerciseNameElement.textContent : 'Unknown Exercise';
+        console.log('Exercise name:', exerciseName);
+        
+        // Save to localStorage
         const key = `tracking_${exerciseId}_${dateString}`;
         const saveData = {
             exerciseId: exerciseId,
             programId: programId,
             date: dateString,
+            exerciseName: exerciseName,
             sets: trackingData,
             timestamp: new Date().toISOString()
         };
@@ -2254,7 +2332,7 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         showSuccess('Progress saved successfully!');
         
         // Update the save button to show saved state
-        const saveBtn = exerciseCard.querySelector('.btn-primary, .save-tracking-btn');
+        const saveBtn = modalContent.querySelector('.btn-primary, .btn-secondary');
         if (saveBtn) {
             saveBtn.textContent = 'Saved ✓';
             saveBtn.classList.add('saved');

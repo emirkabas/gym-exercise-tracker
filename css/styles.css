@@ -2625,37 +2625,7 @@ input:checked + .slider:before {
     overflow: hidden;
 }
 
-.workout-info {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e9ecef;
-}
 
-.info-field {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.info-field label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #6c757d;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.info-field input {
-    padding: 8px 12px;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    background: #ffffff;
-    color: #495057;
-    font-size: 0.9rem;
-}
 
 .progress-table {
     background: #ffffff;

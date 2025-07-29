@@ -775,9 +775,9 @@ function loadWorkoutCalendarPage(container) {
                 </div>
                 
                     <div class="calendar-view-toggle">
-                        <button class="view-toggle-btn active" onclick="switchCalendarView('day')">Day</button>
+                        <button class="view-toggle-btn" onclick="switchCalendarView('day')">Day</button>
                         <button class="view-toggle-btn" onclick="switchCalendarView('week')">Week</button>
-                        <button class="view-toggle-btn" onclick="switchCalendarView('month')">Month</button>
+                        <button class="view-toggle-btn active" onclick="switchCalendarView('month')">Month</button>
                     </div>
                 </div>
             </div>
@@ -795,105 +795,64 @@ function loadWorkoutCalendarPage(container) {
 }
 
 // Progress page
-function loadProgressPage(container) {
-    container.innerHTML = `
-        <div class="progress-page">
-            <div class="page-header">
-                <h1>WORKOUT PLANNER</h1>
-                <p>Track your progress for any date</p>
-            </div>
-            
-            <div class="progress-content">
-                <div class="date-selector">
-                    <label for="progressDate">Select Date:</label>
-                    <input type="date" id="progressDate" onchange="loadProgressForDate(this.value)">
+    function loadProgressPage(container) {
+        container.innerHTML = `
+            <div class="progress-page">
+                <div class="page-header">
+                    <h1>WORKOUT PLANNER</h1>
+                    <p>Track your progress for any date</p>
                 </div>
                 
-                <div id="progressWorkout" class="progress-workout" style="display: none;">
-                    <div class="workout-info">
-                        <div class="info-field">
-                            <label>DATE:</label>
-                            <input type="text" id="workoutDate" readonly>
-                        </div>
-                        <div class="info-field">
-                            <label>FOCUS AREA:</label>
-                            <input type="text" id="focusArea" readonly>
-                        </div>
-                        <div class="info-field">
-                            <label>DURATION:</label>
-                            <input type="text" id="duration" readonly>
+                <div class="progress-content">
+                    <div class="date-selector">
+                        <label for="progressDate">Select Date:</label>
+                        <input type="date" id="progressDate" onchange="loadProgressForDate(this.value)">
+                    </div>
+                    
+                    <div id="progressWorkout" class="progress-workout" style="display: none;">
+                        <div class="progress-table">
+                            <div class="table-header">
+                                <div class="exercise-header">EXERCISE</div>
+                                <div class="set-headers">
+                                    <div class="set-header set-1">SET 1</div>
+                                    <div class="set-header set-2">SET 2</div>
+                                    <div class="set-header set-3">SET 3</div>
+                                    <div class="set-header set-4">SET 4</div>
+                                    <div class="set-header set-5">SET 5</div>
+                                </div>
+                            </div>
+                            <div class="table-subheader">
+                                <div class="exercise-subheader"></div>
+                                <div class="set-subheaders">
+                                    <div class="set-subheader">WEIGHT</div>
+                                    <div class="set-subheader">REPS</div>
+                                    <div class="set-subheader">WEIGHT</div>
+                                    <div class="set-subheader">REPS</div>
+                                    <div class="set-subheader">WEIGHT</div>
+                                    <div class="set-subheader">REPS</div>
+                                    <div class="set-subheader">WEIGHT</div>
+                                    <div class="set-subheader">REPS</div>
+                                    <div class="set-subheader">WEIGHT</div>
+                                    <div class="set-subheader">REPS</div>
+                                </div>
+                            </div>
+                            <div id="progressTableBody" class="table-body">
+                                <!-- Exercise rows will be populated here -->
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="progress-table">
-                        <div class="table-header">
-                            <div class="exercise-header">EXERCISE</div>
-                            <div class="set-headers">
-                                <div class="set-header set-1">SET 1</div>
-                                <div class="set-header set-2">SET 2</div>
-                                <div class="set-header set-3">SET 3</div>
-                                <div class="set-header set-4">SET 4</div>
-                                <div class="set-header set-5">SET 5</div>
-                            </div>
-                        </div>
-                        <div class="table-subheader">
-                            <div class="exercise-subheader"></div>
-                            <div class="set-subheaders">
-                                <div class="set-subheader">WEIGHT</div>
-                                <div class="set-subheader">REPS</div>
-                                <div class="set-subheader">WEIGHT</div>
-                                <div class="set-subheader">REPS</div>
-                                <div class="set-subheader">WEIGHT</div>
-                                <div class="set-subheader">REPS</div>
-                                <div class="set-subheader">WEIGHT</div>
-                                <div class="set-subheader">REPS</div>
-                                <div class="set-subheader">WEIGHT</div>
-                                <div class="set-subheader">REPS</div>
-                            </div>
-                        </div>
-                        <div id="progressTableBody" class="table-body">
-                            <!-- Exercise rows will be populated here -->
-                        </div>
+                    <div id="noProgressMessage" class="no-progress-message" style="display: none;">
+                        <p>No workout data found for the selected date.</p>
                     </div>
                 </div>
-                
-                <div id="noProgressMessage" class="no-progress-message" style="display: none;">
-                    <p>No workout data found for the selected date.</p>
-                </div>
             </div>
-        </div>
-    `;
+        `;
     
     // Set default date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('progressDate').value = today;
     loadProgressForDate(today);
-    
-    // Add debug button
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'Debug localStorage';
-    debugBtn.onclick = debugLocalStorage;
-    debugBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 1000; padding: 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;';
-    document.body.appendChild(debugBtn);
-}
-
-// Debug function to check localStorage
-function debugLocalStorage() {
-    console.log('=== DEBUG: localStorage ===');
-    const keys = Object.keys(localStorage);
-    const exerciseKeys = keys.filter(key => key.includes('exercise_tracking'));
-    
-    console.log('All localStorage keys:', keys);
-    console.log('Exercise tracking keys:', exerciseKeys);
-    
-    exerciseKeys.forEach(key => {
-        try {
-            const data = localStorage.getItem(key);
-            console.log(`Key: ${key}`, JSON.parse(data));
-        } catch (error) {
-            console.log(`Key: ${key} - Error parsing:`, error);
-        }
-    });
 }
 
 // Load progress data for a specific date
@@ -911,11 +870,6 @@ async function loadProgressForDate(dateString) {
             // Show workout data
             progressWorkout.style.display = 'block';
             noProgressMessage.style.display = 'none';
-            
-            // Update workout info
-            document.getElementById('workoutDate').value = formatDate(dateString);
-            document.getElementById('focusArea').value = workoutData.programName || 'General';
-            document.getElementById('duration').value = workoutData.duration || 'Not specified';
             
             // Generate table rows
             tableBody.innerHTML = workoutData.exercises.map(exercise => {

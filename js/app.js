@@ -1771,27 +1771,45 @@ function showExerciseSelection(programId, dateString) {
     if (!program) return;
     
     // Get exercises for this program
-    const programExercises = getProgramExercises(program.name);
+    const programExercises = getProgramExercises(programId);
     
-    // Create exercise selection section
+    // Create direct exercise tracking section
     const exerciseSection = document.createElement('div');
     exerciseSection.id = 'exerciseSelectionSection';
     exerciseSection.className = 'exercise-selection-section';
+    exerciseSection.setAttribute('data-program-id', programId);
     exerciseSection.innerHTML = `
-        <h3>Select Exercise</h3>
-        <div class="exercise-select-container">
-            <select id="exerciseSelect" class="exercise-select" onchange="onExerciseSelected('${programId}', '${dateString}')">
-                <option value="">Choose an exercise...</option>
-                ${programExercises.map(exercise => `
-                    <option value="${exercise.id}">${exercise.name}</option>
-                `).join('')}
-            </select>
-            <button class="btn btn-secondary" onclick="onExerciseSelected('${programId}', '${dateString}')" style="margin-top: 10px;">
-                Load Exercise
-            </button>
+        <h3>Track Your Workout - ${program.name}</h3>
+        <p><strong>Date:</strong> ${formatDate(dateString)}</p>
+        
+        <div class="exercises-tracking-list">
+            ${programExercises.map(exercise => `
+                <div class="exercise-tracking-card" data-exercise-id="${exercise.id}">
+                    <div class="exercise-header">
+                        <h4>${exercise.name}</h4>
+                        <p><strong>Target:</strong> ${exercise.sets} sets × ${exercise.reps} reps</p>
+                    </div>
+                    
+                    <div class="sets-container">
+                        ${generateSetInputs(exercise.sets, 10)}
+                    </div>
+                    
+                    <div class="tracking-actions">
+                        <button class="btn btn-primary" onclick="saveExerciseTracking(${exercise.id}, '${dateString}', '${programId}')">
+                            Save Progress
+                        </button>
+                    </div>
+                </div>
+            `).join('')}
         </div>
-        <div id="exerciseTrackingSection" class="exercise-tracking-section" style="display: none;">
-            <!-- Exercise tracking will be loaded here -->
+        
+        <div class="workout-actions">
+            <button class="btn btn-secondary" onclick="saveAllProgress()">
+                Save All Progress
+            </button>
+            <button class="btn btn-secondary" onclick="closeModal(document.querySelector('.modal'))">
+                Close
+            </button>
         </div>
     `;
     
@@ -1803,18 +1821,24 @@ function showExerciseSelection(programId, dateString) {
     }
     container.appendChild(exerciseSection);
     
-    // Add event listener to the select element
+    // Setup weight auto-fill
     setTimeout(() => {
-        const exerciseSelect = document.getElementById('exerciseSelect');
-        if (exerciseSelect) {
-            exerciseSelect.addEventListener('change', function() {
-                onExerciseSelected(programId, dateString);
-            });
-        }
+        setupWeightAutoFill();
     }, 100);
 }
 
-function getProgramExercises(programName) {
+function getProgramExercises(programNameOrId) {
+    // First try to find by ID (for programId)
+    if (typeof programNameOrId === 'string' && programNameOrId.match(/^\d+$/)) {
+        const program = workoutPrograms.find(p => p.id == programNameOrId);
+        if (program && program.exercises) {
+            return program.exercises;
+        }
+    }
+    
+    // Fallback to name-based lookup (for backward compatibility)
+    const programName = typeof programNameOrId === 'string' ? programNameOrId : '';
+    
     // Mock exercises based on program name
     switch(programName) {
         case 'Cardio & Strength Mix':
@@ -1849,43 +1873,7 @@ function getProgramExercises(programName) {
     }
 }
 
-function onExerciseSelected(programId, dateString) {
-    console.log('Exercise selected:', programId, dateString);
-    
-    const exerciseSelect = document.getElementById('exerciseSelect');
-    if (!exerciseSelect) {
-        console.error('Exercise select element not found');
-        return;
-    }
-    
-    const exerciseId = exerciseSelect.value;
-    console.log('Selected exercise ID:', exerciseId);
-    
-    if (!exerciseId) {
-        const trackingSection = document.getElementById('exerciseTrackingSection');
-        if (trackingSection) {
-            trackingSection.style.display = 'none';
-        }
-        return;
-    }
-    
-    const program = workoutPrograms.find(p => p.id == programId);
-    if (!program) {
-        console.error('Program not found:', programId);
-        return;
-    }
-    
-    const programExercises = getProgramExercises(program.name);
-    const selectedExercise = programExercises.find(e => e.id == parseInt(exerciseId));
-    
-    console.log('Selected exercise:', selectedExercise);
-    
-    if (selectedExercise) {
-        showExerciseTracking(selectedExercise, programId, dateString);
-    } else {
-        console.error('Exercise not found in program exercises');
-    }
-}
+// Function removed - no longer needed with simplified calendar flow
 
 function showExerciseTracking(exercise, programId, dateString) {
     console.log('Showing exercise tracking for:', exercise);
@@ -2809,17 +2797,18 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         const exerciseNameElement = modalContent.querySelector('h2');
         const exerciseName = exerciseNameElement ? validators.sanitizeHtml(exerciseNameElement.textContent) : 'Unknown Exercise';
         
-        // Find all number inputs in the modal
-        const numberInputs = modalContent.querySelectorAll('input[type="number"]');
+        // Find all weight and reps inputs specifically
+        const weightInputs = modalContent.querySelectorAll('.weight-input');
+        const repsInputs = modalContent.querySelectorAll('.reps-input');
         
         const trackingData = {};
         let hasData = false;
         
-        // Process inputs in pairs (weight, reps)
-        for (let i = 0; i < numberInputs.length; i += 2) {
-            const weightInput = numberInputs[i];
-            const repsInput = numberInputs[i + 1];
-            const setNumber = Math.floor(i / 2) + 1;
+        // Process each set
+        for (let i = 0; i < weightInputs.length; i++) {
+            const weightInput = weightInputs[i];
+            const repsInput = repsInputs[i];
+            const setNumber = i + 1;
             
             if (weightInput && repsInput) {
                 const weight = weightInput.value.trim();
@@ -2872,8 +2861,8 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
             showSuccess('Exercise progress saved successfully!');
             
             // Update the save button
-            const saveBtn = modalContent.querySelector('.btn-primary, .btn-secondary');
-            if (saveBtn) {
+            const saveBtn = modalContent.querySelector('.btn-secondary');
+            if (saveBtn && saveBtn.textContent.includes('Save Progress')) {
                 saveBtn.textContent = 'Saved ✓';
                 saveBtn.classList.add('saved');
                 saveBtn.disabled = true;
@@ -2893,40 +2882,45 @@ async function saveAllProgress() {
     try {
         const exerciseCards = document.querySelectorAll('.exercise-tracking-card');
         let savedCount = 0;
+        let totalCount = exerciseCards.length;
+        
+        // Get the current date from the page
+        const dateElement = document.querySelector('.exercise-selection-section p strong');
+        let dateString = new Date().toISOString().split('T')[0]; // Default to today
+        
+        if (dateElement && dateElement.textContent.includes('Date:')) {
+            // Extract date from the page content
+            const dateText = dateElement.parentElement.textContent;
+            const dateMatch = dateText.match(/(\d{4}-\d{2}-\d{2})/);
+            if (dateMatch) {
+                dateString = dateMatch[1];
+            }
+        }
+        
+        // Get program ID from the page
+        const programId = document.querySelector('.exercise-selection-section')?.getAttribute('data-program-id') || '1';
         
         for (const card of exerciseCards) {
             const exerciseId = card.getAttribute('data-exercise-id');
-            const inputs = card.querySelectorAll('input[data-set]');
-            const trackingData = {};
             
-            inputs.forEach(input => {
-                const set = input.getAttribute('data-set');
-                const field = input.getAttribute('data-field');
-                const value = input.value;
-                
-                if (set && field && value) {
-                    if (!trackingData[set]) trackingData[set] = {};
-                    trackingData[set][field] = value;
+            if (exerciseId) {
+                try {
+                    await saveExerciseTracking(exerciseId, dateString, programId);
+                    savedCount++;
+                } catch (error) {
+                    console.error('Error saving exercise:', exerciseId, error);
                 }
-            });
-            
-            if (Object.keys(trackingData).length > 0) {
-                // Save individual exercise data
-                const key = `tracking_${exerciseId}_${currentParams.dateString}`;
-                localStorage.setItem(key, JSON.stringify(trackingData));
-                savedCount++;
             }
         }
         
         if (savedCount > 0) {
-            showSuccess(`Saved progress for ${savedCount} exercises!`);
+            showSuccess(`Successfully saved ${savedCount} out of ${totalCount} exercises!`);
         } else {
-            showError('No data to save. Please fill in some exercise details.');
+            showError('No exercises were saved. Please enter some data first.');
         }
         
     } catch (error) {
-        console.error('Error saving all progress:', error);
-        showError('Failed to save progress');
+        handleError('Failed to save all progress', error);
     }
 }
 
@@ -3419,3 +3413,4 @@ function getProgramExercises(programNameOrId) {
             ];
     }
 }
+

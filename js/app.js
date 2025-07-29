@@ -262,8 +262,8 @@ function initializeApp() {
         // Show version in console for debugging
         console.log('🚀 Gym Exercise Tracker v2025-07-29 - Critical Fixes & Performance Optimizations');
         
-        setupNavigation();
-        loadPage(currentPage);
+    setupNavigation();
+    loadPage(currentPage);
         loadInitialData().finally(() => {
             hideLoading();
         });
@@ -393,17 +393,17 @@ function loadPage(page, params = {}) {
 // Exercises page
 function loadExercisesPage(container) {
     container.innerHTML = `
-        <div class="page-header">
+            <div class="page-header">
             <h1>Exercises</h1>
             <p>Browse and search exercises by muscle group</p>
-        </div>
-        
+            </div>
+            
         <div class="content-layout">
             <div class="sidebar">
                 <div class="search-section">
                     <input type="text" id="exerciseSearch" class="search-input" placeholder="Search exercises...">
-                </div>
-                
+            </div>
+            
                 <div class="filter-section">
                     <div class="filter-group">
                         <div class="filter-header" onclick="toggleFilter('muscleGroup')">
@@ -464,9 +464,9 @@ function loadExercisesPage(container) {
             
             <div class="main-content">
                 <div id="exercisesList" class="exercises-grid">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <p>Loading exercises...</p>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading exercises...</p>
                     </div>
                 </div>
             </div>
@@ -480,11 +480,11 @@ function loadExercisesPage(container) {
 // Muscle Groups page
 function loadMuscleGroupsPage(container) {
     container.innerHTML = `
-        <div class="page-header">
+            <div class="page-header">
             <h1>Muscle Groups</h1>
             <p>Browse exercises by muscle group</p>
-        </div>
-        
+            </div>
+            
         <div class="content-layout">
             <div class="sidebar">
                 <div class="search-section">
@@ -517,9 +517,9 @@ function loadMuscleGroupsPage(container) {
             
             <div class="main-content">
                 <div id="muscleGroupsList" class="muscle-groups-grid">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <p>Loading muscle groups...</p>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading muscle groups...</p>
                     </div>
                 </div>
             </div>
@@ -533,13 +533,13 @@ function loadMuscleGroupsPage(container) {
 // Workout Programs page
 function loadWorkoutProgramsPage(container) {
     container.innerHTML = `
-        <div class="page-header">
+            <div class="page-header">
             <h1>Workout Programs</h1>
             <button class="btn btn-primary" onclick="showCreateProgramModal()">
                 <span>+ Create New Program</span>
-            </button>
-        </div>
-        
+                </button>
+            </div>
+            
         <div class="content-layout">
             <div class="sidebar">
                 <div class="search-section">
@@ -593,9 +593,9 @@ function loadWorkoutProgramsPage(container) {
             
             <div class="main-content">
                 <div id="workoutProgramsList" class="programs-grid">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <p>Loading workout programs...</p>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading workout programs...</p>
                     </div>
                 </div>
             </div>
@@ -752,61 +752,60 @@ function loadExerciseDetailsPage(container, params) {
 // Workout Calendar page
 function loadWorkoutCalendarPage(container) {
     container.innerHTML = `
-        <div class="container">
-            <div class="page-header">
-                <h1 class="page-title">Calendar</h1>
-            </div>
-            
-            <!-- View Toggle Buttons -->
-            <div class="calendar-view-toggle">
-                <button class="view-toggle-btn ${calendarView === 'day' ? 'active' : ''}" onclick="switchCalendarView('day')">Day</button>
-                <button class="view-toggle-btn ${calendarView === 'week' ? 'active' : ''}" onclick="switchCalendarView('week')">Week</button>
-                <button class="view-toggle-btn ${calendarView === 'month' ? 'active' : ''}" onclick="switchCalendarView('month')">Month</button>
-            </div>
-            
-            <div class="calendar">
-                <div class="calendar-header">
-                    <button class="btn btn-secondary" onclick="previousPeriod()">Previous</button>
-                    <h2 id="currentPeriod">January 2024</h2>
-                    <button class="btn btn-secondary" onclick="nextPeriod()">Next</button>
+        <div class="calendar-page">
+            <div class="calendar-header-main">
+                <div class="calendar-title">
+                    <h1>Schedule</h1>
+                    <div class="calendar-actions">
+                        <button class="btn-icon" title="Add workout">
+                            <span>+</span>
+                        </button>
+                        <button class="btn-icon" title="More options">
+                            <span>⋯</span>
+                        </button>
+                    </div>
                 </div>
                 
-                <div id="calendarGrid" class="calendar-grid">
-                    <!-- Calendar will be generated here -->
+                <div class="calendar-controls">
+                    <div class="calendar-nav">
+                        <button class="btn btn-outline" onclick="previousPeriod()">
+                            <span>&lt;</span>
+                        </button>
+                        <button class="btn btn-outline" onclick="goToToday()">
+                            Today
+                        </button>
+                        <button class="btn btn-outline" onclick="nextPeriod()">
+                            <span>&gt;</span>
+                        </button>
+                    </div>
+                    
+                    <div class="calendar-view-toggle">
+                        <button class="view-toggle-btn active" onclick="switchCalendarView('day')">Day</button>
+                        <button class="view-toggle-btn" onclick="switchCalendarView('week')">Week</button>
+                        <button class="view-toggle-btn" onclick="switchCalendarView('month')">Month</button>
+                    </div>
+                    
+                    <div class="calendar-actions-right">
+                        <button class="btn btn-primary" onclick="showCreateWorkoutModal()">
+                            New <span>▼</span>
+                        </button>
+                        <button class="btn btn-secondary" onclick="manageInCalendar()">
+                            <span class="calendar-icon">📅</span> Manage in Calendar
+                        </button>
+                    </div>
                 </div>
             </div>
             
-            <!-- Workout Today Section (only for today) -->
-            <div id="workoutTodaySection" class="workout-today-section" style="display: none;">
-                <div class="workout-toggle">
-                    <span>Workout Today?</span>
-                    <label class="switch">
-                        <input type="checkbox" id="workoutTodayToggle" onchange="toggleWorkoutToday()">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
-                
-                <div id="programSelection" class="program-selection" style="display: none;">
-                    <button class="btn btn-primary" onclick="showProgramSelectionModal()">
-                        ${selectedProgram || 'Select Workout Program'}
-                    </button>
-                </div>
-            </div>
-            
-            <!-- Selected Date Workout Section (for non-today dates) -->
-            <div id="selectedDateSection" class="selected-date-section" style="display: none;">
-                <h3 id="selectedDateTitle">Workout for Selected Date</h3>
-                <div id="selectedDateContent">
-                    <button class="btn btn-primary" onclick="showProgramSelectionModal()">
-                        Add Workout
-                    </button>
+            <div id="calendarContent" class="calendar-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading calendar...</p>
                 </div>
             </div>
         </div>
     `;
     
     generateCalendar();
-    updateWorkoutSections();
 }
 
 // Data loading functions
@@ -1054,12 +1053,12 @@ function displayMuscleGroups(groups) {
     container.innerHTML = groups.map(group => {
         const exerciseCount = exercises.filter(e => e.muscle_group_id === group.id).length;
         return `
-            <div class="card">
-                <h3>${group.name}</h3>
-                <p>${group.description || 'No description available.'}</p>
+        <div class="card">
+            <h3>${group.name}</h3>
+            <p>${group.description || 'No description available.'}</p>
                 <p><strong>Exercises:</strong> ${exerciseCount} exercises</p>
-                <button class="btn btn-secondary" onclick="navigateToPage('muscle-group-exercises', { muscleGroupId: ${group.id} })">View Exercises</button>
-            </div>
+            <button class="btn btn-secondary" onclick="navigateToPage('muscle-group-exercises', { muscleGroupId: ${group.id} })">View Exercises</button>
+        </div>
         `;
     }).join('');
     
@@ -1082,21 +1081,21 @@ function displayWorkoutPrograms(programs) {
         return `
             <div class="card workout-program-card">
                 <div class="program-header">
-                    <h3>${program.name}</h3>
+            <h3>${program.name}</h3>
                     <button class="delete-btn" onclick="deleteWorkoutProgram(${program.id}, '${program.name}')" title="Delete Program">
                         <span>&times;</span>
                     </button>
                 </div>
-                <p><strong>Difficulty:</strong> ${program.difficulty_level || 'Not specified'}</p>
-                <p><strong>Duration:</strong> ${program.duration_weeks || 'Not specified'} weeks</p>
-                <p>${program.description || 'No description available.'}</p>
+            <p><strong>Difficulty:</strong> ${program.difficulty_level || 'Not specified'}</p>
+            <p><strong>Duration:</strong> ${program.duration_weeks || 'Not specified'} weeks</p>
+            <p>${program.description || 'No description available.'}</p>
                 <p><strong>Exercises:</strong> ${programExercises.length} exercises</p>
                 
                 <div class="program-actions">
-                    <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
+            <button class="btn btn-secondary" onclick="showWorkoutProgramDetails(${program.id})">View Details</button>
                     <button class="btn btn-outline" onclick="editWorkoutProgram(${program.id})">Edit</button>
                     <button class="btn btn-primary" onclick="showAddExerciseModal(${program.id})">Add Exercise</button>
-                </div>
+        </div>
             </div>
         `;
     }).join('');
@@ -1109,7 +1108,7 @@ function displayWorkoutPrograms(programs) {
 function setupExerciseFilters() {
     const searchInput = document.getElementById('exerciseSearch');
     if (searchInput) {
-        searchInput.addEventListener('input', filterExercises);
+    searchInput.addEventListener('input', filterExercises);
     }
     
     // Setup checkbox filters
@@ -1530,9 +1529,9 @@ async function loadProgramExercisesForPage(programId, dateString = null) {
                             <div class="exercise-item">
                                 <div class="exercise-info">
                                     <h4>${exercise.name}</h4>
-                                    <p><strong>Sets:</strong> ${exercise.sets} | <strong>Reps:</strong> ${exercise.reps}</p>
+                    <p><strong>Sets:</strong> ${exercise.sets} | <strong>Reps:</strong> ${exercise.reps}</p>
                                     ${exercise.muscleGroup ? `<p><strong>Muscle Group:</strong> ${exercise.muscleGroup}</p>` : ''}
-                                </div>
+                    </div>
                                 <div class="exercise-actions">
                                     <button class="btn btn-secondary" onclick="navigateToPage('exercise-details', { exerciseId: ${exercise.id} })">
                                         View Details
@@ -1540,7 +1539,7 @@ async function loadProgramExercisesForPage(programId, dateString = null) {
                                     <button class="btn btn-danger" onclick="removeExerciseFromProgram('${programId}', ${exercise.id})">
                                         Remove
                                     </button>
-                                </div>
+                </div>
                             </div>
                         `).join('')}
                     </div>
@@ -1707,8 +1706,8 @@ function closeModal(element) {
 // Calendar functions
 
 function generateCalendar() {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    const container = document.getElementById('calendarContent');
+    if (!container) return;
     
     const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                        'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1718,46 +1717,71 @@ function generateCalendar() {
     switch(calendarView) {
         case 'day':
             calendarHTML = generateDayView();
-            document.getElementById('currentPeriod').textContent = selectedDate.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                month: 'long', 
-                day: 'numeric' 
-            });
             break;
         case 'week':
             calendarHTML = generateWeekView();
-            const weekStart = getWeekStart(selectedDate);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            document.getElementById('currentPeriod').textContent = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
             break;
         case 'month':
             calendarHTML = generateMonthView();
-            document.getElementById('currentPeriod').textContent = `${monthNames[month]} ${year}`;
             break;
     }
     
-    const calendarGrid = document.getElementById('calendarGrid');
-    calendarGrid.innerHTML = calendarHTML;
+    container.innerHTML = calendarHTML;
 }
 
 function generateDayView() {
     const dateString = selectedDate.toISOString().split('T')[0];
     const hasWorkout = scheduledWorkouts[dateString];
+    const isToday = selectedDate.toDateString() === new Date().toDateString();
     
     return `
-        <div class="day-view">
-            <div class="day-schedule">
-                <h3>Today's Schedule</h3>
-                ${hasWorkout ? `
-                    <div class="scheduled-workout">
-                        <h4>${hasWorkout.name}</h4>
-                        <p>Duration: ${hasWorkout.duration || 'Not specified'}</p>
-                        <button class="btn btn-primary" onclick="showWorkoutDetails('${dateString}')">View Details</button>
-                    </div>
-                ` : `
-                    <p>No workout scheduled</p>
-                `}
+        <div class="calendar">
+            <div class="calendar-header">
+                <h2>${selectedDate.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    month: 'long', 
+                    day: 'numeric',
+                    year: 'numeric'
+                })}</h2>
+            </div>
+            
+            <div class="day-view">
+                <div class="day-schedule">
+                    ${isToday ? `
+                        <div class="workout-today-section">
+                            <div class="workout-toggle">
+                                <span>Workout Today?</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="workoutTodayToggle" onchange="toggleWorkoutToday()">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                            
+                            <div id="programSelection" class="program-selection" style="display: none;">
+                                <button class="btn btn-primary" onclick="showProgramSelectionModal()">
+                                    ${selectedProgram || 'Select Workout Program'}
+                                </button>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="selected-date-section">
+                            <h3>Workout for ${selectedDate.toLocaleDateString()}</h3>
+                            <div class="selected-date-content">
+                                <button class="btn btn-primary" onclick="showProgramSelectionModal()">
+                                    Add Workout
+                                </button>
+                            </div>
+                        </div>
+                    `}
+                    
+                    ${hasWorkout ? `
+                        <div class="scheduled-workout">
+                            <h4>${hasWorkout.name}</h4>
+                            <p>Duration: ${hasWorkout.duration || 'Not specified'}</p>
+                            <button class="btn btn-primary" onclick="showWorkoutDetails('${dateString}')">View Details</button>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         </div>
     `;
@@ -1766,76 +1790,84 @@ function generateDayView() {
 function generateWeekView() {
     const weekStart = getWeekStart(selectedDate);
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    let weekHTML = '<div class="week-view">';
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
     
-    // Day headers
-    weekHTML += '<div class="week-header">';
-    dayNames.forEach(day => {
-        weekHTML += `<div class="week-day-header">${day}</div>`;
-    });
-    weekHTML += '</div>';
-    
-    // Week grid
-    weekHTML += '<div class="week-grid">';
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(weekStart);
-        date.setDate(date.getDate() + i);
-        const dateString = date.toISOString().split('T')[0];
-        const hasWorkout = scheduledWorkouts[dateString];
-        const isSelected = date.toDateString() === selectedDate.toDateString();
-        const isToday = date.toDateString() === new Date().toDateString();
-        
-        weekHTML += `
-            <div class="week-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectDateFromWeek('${dateString}')">
-                <div class="week-day-number">${date.getDate()}</div>
-                ${hasWorkout ? '<div class="workout-indicator"></div>' : ''}
+    return `
+        <div class="calendar">
+            <div class="calendar-header">
+                <h2>${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</h2>
             </div>
-        `;
-    }
-    weekHTML += '</div></div>';
-    
-    return weekHTML;
+            
+            <div class="week-view">
+                <div class="week-header">
+                    ${dayNames.map(day => `<div class="week-day-header">${day}</div>`).join('')}
+                </div>
+                
+                <div class="week-grid">
+                    ${Array.from({length: 7}, (_, i) => {
+                        const date = new Date(weekStart);
+                        date.setDate(date.getDate() + i);
+                        const dateString = date.toISOString().split('T')[0];
+                        const hasWorkout = scheduledWorkouts[dateString];
+                        const isSelected = date.toDateString() === selectedDate.toDateString();
+                        const isToday = date.toDateString() === new Date().toDateString();
+                        
+                        return `
+                            <div class="week-day ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectDateFromWeek('${dateString}')">
+                                <div class="week-day-number">${date.getDate()}</div>
+                                ${hasWorkout ? '<div class="workout-indicator"></div>' : ''}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function generateMonthView() {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
     
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
     const startingDay = firstDay.getDay();
     
-    let calendarHTML = '';
-    
-    // Add day headers
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    dayNames.forEach(day => {
-        calendarHTML += `<div class="calendar-day-header">${day}</div>`;
-    });
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                       'July', 'August', 'September', 'October', 'November', 'December'];
     
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDay; i++) {
-        calendarHTML += '<div class="calendar-day empty"></div>';
-    }
-    
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(year, month, day);
-        const dateString = date.toISOString().split('T')[0];
-        const hasWorkout = scheduledWorkouts[dateString];
-        const isSelected = date.toDateString() === selectedDate.toDateString();
-        const isToday = date.toDateString() === new Date().toDateString();
-        
-        calendarHTML += `
-            <div class="calendar-day ${hasWorkout ? 'has-workout' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectDateFromMonth(${year}, ${month + 1}, ${day})">
-                <div class="calendar-day-number">${day}</div>
-                ${hasWorkout ? '<div class="workout-indicator"></div>' : ''}
+    return `
+        <div class="calendar">
+            <div class="calendar-header">
+                <h2>${monthNames[month]} ${year}</h2>
             </div>
-        `;
-    }
-    
-    return calendarHTML;
+            
+            <div class="calendar-grid">
+                ${dayNames.map(day => `<div class="calendar-day-header">${day}</div>`).join('')}
+                
+                ${Array.from({length: startingDay}, () => '<div class="calendar-day empty"></div>').join('')}
+                
+                ${Array.from({length: daysInMonth}, (_, i) => {
+                    const day = i + 1;
+                    const date = new Date(year, month, day);
+                    const dateString = date.toISOString().split('T')[0];
+                    const hasWorkout = scheduledWorkouts[dateString];
+                    const isSelected = date.toDateString() === selectedDate.toDateString();
+                    const isToday = date.toDateString() === new Date().toDateString();
+                    
+                    return `
+                        <div class="calendar-day ${hasWorkout ? 'has-workout' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}" onclick="selectDateFromMonth(${year}, ${month + 1}, ${day})">
+                            <div class="calendar-day-number">${day}</div>
+                            ${hasWorkout ? '<div class="workout-indicator"></div>' : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
 }
 
 function checkForWorkout(year, month, day) {
@@ -2019,11 +2051,48 @@ function previousPeriod() {
             selectedDate.setDate(selectedDate.getDate() - 7);
             break;
         case 'month':
-            currentDate.setMonth(currentDate.getMonth() - 1);
+    currentDate.setMonth(currentDate.getMonth() - 1);
             break;
     }
     generateCalendar();
     updateWorkoutSections();
+}
+
+function goToToday() {
+    const today = new Date();
+    selectedDate = new Date(today);
+    generateCalendar();
+}
+
+function showCreateWorkoutModal() {
+    // Show modal to create a new workout
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Workout</h2>
+                <button class="close" onclick="closeModal(this.parentElement.parentElement)">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Select a workout program to schedule:</p>
+                <div class="program-selection-list">
+                    ${workoutPrograms.map(program => `
+                        <button class="program-option" onclick="selectWorkoutProgram(${program.id}, '${new Date().toISOString().split('T')[0]}')">
+                            <h3>${program.name}</h3>
+                            <p>${program.description || 'No description'}</p>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function manageInCalendar() {
+    // Function to manage workouts in calendar view
+    showSuccess('Calendar management feature coming soon!');
 }
 
 function nextPeriod() {
@@ -2035,7 +2104,7 @@ function nextPeriod() {
             selectedDate.setDate(selectedDate.getDate() + 7);
             break;
         case 'month':
-            currentDate.setMonth(currentDate.getMonth() + 1);
+    currentDate.setMonth(currentDate.getMonth() + 1);
             break;
     }
     generateCalendar();
@@ -3098,7 +3167,7 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
                         reps: reps !== '' ? parseInt(reps) || 0 : 0
                     };
                     hasData = true;
-                }
+                    }
             }
         }
         
@@ -3127,12 +3196,12 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         const retrieved = localStorage.getItem(key);
         if (retrieved === jsonString) {
             showSuccess('Exercise progress saved successfully!');
-            
+        
             // Update the save button
             const saveBtn = exerciseCard.querySelector('.btn-primary');
             if (saveBtn && saveBtn.textContent.includes('Save Progress')) {
                 saveBtn.textContent = 'Saved ✓';
-                saveBtn.classList.add('saved');
+            saveBtn.classList.add('saved');
                 saveBtn.disabled = true;
             }
             
@@ -3174,7 +3243,7 @@ async function saveAllProgress() {
             if (exerciseId) {
                 try {
                     await saveExerciseTracking(exerciseId, dateString, programId);
-                    savedCount++;
+                savedCount++;
                 } catch (error) {
                     console.error('Error saving exercise:', exerciseId, error);
                 }
@@ -3197,7 +3266,7 @@ window.onclick = function(event) {
     if (event.target.classList.contains('modal')) {
         event.target.remove();
     }
-}
+} 
 
 // Workout Program Management Functions
 

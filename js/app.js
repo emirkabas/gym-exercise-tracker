@@ -756,14 +756,6 @@ function loadWorkoutCalendarPage(container) {
             <div class="calendar-header-main">
                 <div class="calendar-title">
                     <h1>Schedule</h1>
-                    <div class="calendar-actions">
-                        <button class="btn-icon" title="Add workout">
-                            <span>+</span>
-                        </button>
-                        <button class="btn-icon" title="More options">
-                            <span>⋯</span>
-                        </button>
-                    </div>
                 </div>
                 
                 <div class="calendar-controls">
@@ -783,15 +775,6 @@ function loadWorkoutCalendarPage(container) {
                         <button class="view-toggle-btn active" onclick="switchCalendarView('day')">Day</button>
                         <button class="view-toggle-btn" onclick="switchCalendarView('week')">Week</button>
                         <button class="view-toggle-btn" onclick="switchCalendarView('month')">Month</button>
-                    </div>
-                    
-                    <div class="calendar-actions-right">
-                        <button class="btn btn-primary" onclick="showCreateWorkoutModal()">
-                            New <span>▼</span>
-                        </button>
-                        <button class="btn btn-secondary" onclick="manageInCalendar()">
-                            <span class="calendar-icon">📅</span> Manage in Calendar
-                        </button>
                     </div>
                 </div>
             </div>
@@ -2064,36 +2047,7 @@ function goToToday() {
     generateCalendar();
 }
 
-function showCreateWorkoutModal() {
-    // Show modal to create a new workout
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Create New Workout</h2>
-                <button class="close" onclick="closeModal(this.parentElement.parentElement)">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Select a workout program to schedule:</p>
-                <div class="program-selection-list">
-                    ${workoutPrograms.map(program => `
-                        <button class="program-option" onclick="selectWorkoutProgram(${program.id}, '${new Date().toISOString().split('T')[0]}')">
-                            <h3>${program.name}</h3>
-                            <p>${program.description || 'No description'}</p>
-                        </button>
-                    `).join('')}
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-}
 
-function manageInCalendar() {
-    // Function to manage workouts in calendar view
-    showSuccess('Calendar management feature coming soon!');
-}
 
 function nextPeriod() {
     switch(calendarView) {
@@ -2260,26 +2214,21 @@ function getProgramExercises(programNameOrId) {
 // Function removed - no longer needed with simplified calendar flow
 
 function setupWeightAutoFill() {
-    const weightInputs = document.querySelectorAll('input[data-set]');
-    console.log('Found weight inputs:', weightInputs.length);
-    
-    weightInputs.forEach((input, index) => {
-        input.addEventListener('input', function() {
-            const weight = this.value;
-            const setNumber = parseInt(this.getAttribute('data-set'));
-            console.log('Weight input changed:', setNumber, weight);
+    document.addEventListener('input', (event) => {
+        if (event.target.classList.contains('weight-input')) {
+            const weightValue = event.target.value;
+            const exerciseCard = event.target.closest('.exercise-tracking-card');
             
-            // If this is the first set and weight is entered, auto-fill other sets
-            if (setNumber === 1 && weight && weight > 0) {
-                weightInputs.forEach((otherInput, otherIndex) => {
-                    const otherSetNumber = parseInt(otherInput.getAttribute('data-set'));
-                    if (otherSetNumber > 1) { // Skip the first input (already filled)
-                        otherInput.value = weight;
-                        console.log('Auto-filled set', otherSetNumber, 'with weight', weight);
+            if (exerciseCard && weightValue) {
+                // Only fill other weight inputs within the same exercise card
+                const weightInputs = exerciseCard.querySelectorAll('input[data-field="weight"]');
+                weightInputs.forEach(input => {
+                    if (input !== event.target) {
+                        input.value = weightValue;
                     }
                 });
             }
-        });
+        }
     });
 }
 
@@ -2292,11 +2241,11 @@ function generateSetInputs(sets, targetReps) {
                 <div class="set-inputs">
                     <div class="input-group">
                         <label>Reps:</label>
-                        <input type="number" id="reps_${i}" class="set-input" placeholder="${targetReps}" min="0" max="100">
+                        <input type="number" class="set-input" data-field="reps" placeholder="${targetReps}" min="0" max="100">
                     </div>
                     <div class="input-group">
                         <label>Weight (lbs):</label>
-                        <input type="number" id="weight_${i}" class="set-input weight-input" placeholder="0" min="0" max="500" data-set="${i}">
+                        <input type="number" class="set-input weight-input" data-field="weight" placeholder="0" min="0" max="500">
                     </div>
                 </div>
             </div>

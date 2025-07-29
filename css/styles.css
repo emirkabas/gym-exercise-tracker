@@ -2294,7 +2294,7 @@ input:checked + .slider:before {
 
 .calendar-title {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 20px;
 }
@@ -2306,35 +2306,9 @@ input:checked + .slider:before {
     font-weight: 600;
 }
 
-.calendar-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.btn-icon {
-    width: 32px;
-    height: 32px;
-    border: 1px solid #dee2e6;
-    background: #ffffff;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 16px;
-    color: #6c757d;
-}
-
-.btn-icon:hover {
-    background: #f8f9fa;
-    border-color: #adb5bd;
-    color: #495057;
-}
-
 .calendar-controls {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
@@ -2390,44 +2364,7 @@ input:checked + .slider:before {
     color: #495057;
 }
 
-.calendar-actions-right {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
 
-.calendar-actions-right .btn {
-    padding: 8px 16px;
-    font-size: 0.9rem;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-}
-
-.calendar-actions-right .btn-primary {
-    background: #007bff;
-    border: 1px solid #007bff;
-    color: #ffffff;
-}
-
-.calendar-actions-right .btn-primary:hover {
-    background: #0056b3;
-    border-color: #0056b3;
-}
-
-.calendar-actions-right .btn-secondary {
-    background: #6c757d;
-    border: 1px solid #6c757d;
-    color: #ffffff;
-}
-
-.calendar-actions-right .btn-secondary:hover {
-    background: #545b62;
-    border-color: #545b62;
-}
-
-.calendar-icon {
-    margin-right: 6px;
-}
 
 .calendar-content {
     padding: 24px;

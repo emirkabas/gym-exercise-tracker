@@ -263,6 +263,8 @@ function initializeApp() {
         console.log('🚀 Gym Exercise Tracker v2025-07-29 - Critical Fixes & Performance Optimizations');
         
     setupNavigation();
+    setupDeleteAllButton();
+    setupDeleteAllProgramsButton();
     loadPage(currentPage);
         loadInitialData().finally(() => {
             hideLoading();
@@ -270,6 +272,80 @@ function initializeApp() {
     } catch (error) {
         handleError('Failed to initialize app', error);
         hideLoading();
+    }
+}
+
+function setupDeleteAllButton() {
+    const deleteButton = document.getElementById('delete-all-exercises');
+    if (deleteButton) {
+        deleteButton.addEventListener('click', async () => {
+            const confirmation = confirm('Are you sure you want to delete all exercises? This action cannot be undone.');
+            if (confirmation) {
+                showLoading('Deleting all exercises...');
+                try {
+                    const response = await fetch('/api/exercises', {
+                        method: 'DELETE',
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to delete exercises.');
+                    }
+
+                    const result = await response.json();
+                    showSuccess(result.message);
+                    
+                    // Clear cache and reload data
+                    clearCache();
+                    await loadInitialData();
+                    
+                    // Reload the current page to reflect the changes
+                    loadPage(currentPage, currentParams);
+
+                } catch (error) {
+                    handleError('Failed to delete exercises', error);
+                } finally {
+                    hideLoading();
+                }
+            }
+        });
+    }
+}
+
+function setupDeleteAllProgramsButton() {
+    const deleteButton = document.getElementById('delete-all-programs');
+    if (deleteButton) {
+        deleteButton.addEventListener('click', async () => {
+            const confirmation = confirm('Are you sure you want to delete all workout programs? This action cannot be undone.');
+            if (confirmation) {
+                showLoading('Deleting all workout programs...');
+                try {
+                    const response = await fetch('/api/workout-programs', {
+                        method: 'DELETE',
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to delete workout programs.');
+                    }
+
+                    const result = await response.json();
+                    showSuccess(result.message);
+                    
+                    // Clear cache and reload data
+                    clearCache();
+                    await loadInitialData();
+                    
+                    // Reload the current page to reflect the changes
+                    loadPage(currentPage, currentParams);
+
+                } catch (error) {
+                    handleError('Failed to delete workout programs', error);
+                } finally {
+                    hideLoading();
+                }
+            }
+        });
     }
 }
 

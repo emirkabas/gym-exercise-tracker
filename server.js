@@ -31,7 +31,7 @@ const upload = multer({
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static('public'));
+app.use(express.static(__dirname));
 
 // API Routes
 
@@ -75,6 +75,35 @@ app.get('/api/exercises/:id', async (req, res) => {
   if (error) return res.status(500).json({ error: error.message });
   if (!data) return res.status(404).json({ error: 'Exercise not found' });
   res.json({ ...data, muscle_group_name: data.muscle_groups?.name || '' });
+});
+
+// Delete all exercises
+app.delete('/api/exercises', async (req, res) => {
+  try {
+    // First, delete all records from workout_program_exercises
+    const { error: programExercisesError } = await supabase
+      .from('workout_program_exercises')
+      .delete()
+      .neq('id', 0); // Placeholder to delete all rows
+
+    if (programExercisesError) {
+      return res.status(500).json({ error: programExercisesError.message });
+    }
+
+    // Then, delete all exercises
+    const { error: exercisesError } = await supabase
+      .from('exercises')
+      .delete()
+      .neq('id', 0); // Placeholder to delete all rows
+
+    if (exercisesError) {
+      return res.status(500).json({ error: exercisesError.message });
+    }
+
+    res.json({ message: 'All exercises and their references in workout programs have been deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Add new exercise
@@ -144,6 +173,28 @@ app.post('/api/workout-programs', async (req, res) => {
     .single();
   if (error) return res.status(500).json({ error: error.message });
   res.json({ id: data.id, message: 'Workout program added successfully' });
+});
+
+// Delete all workout programs
+app.delete('/api/workout-programs', async (req, res) => {
+  try {
+    // First, delete all records from user_workouts that reference workout programs
+    await supabase.from('user_workouts').delete().neq('id', 0);
+
+    // Second, delete all records from workout_program_exercises
+    await supabase.from('workout_program_exercises').delete().neq('id', 0);
+
+    // Finally, delete all workout programs
+    const { error } = await supabase.from('workout_programs').delete().neq('id', 0);
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({ message: 'All workout programs and associated data have been deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Delete workout program
@@ -656,11 +707,14 @@ app.get('/api/workout-tracking/:userWorkoutId/:date', async (req, res) => {
 
 // Serve the main HTML file
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Start server
+/*
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
   console.log('API endpoints available at /api/');
-}); 
+});
+*/
+module.exports = app; 

@@ -480,7 +480,7 @@ function loadExercisesPage(container) {
             <div class="page-header">
             <h1>Exercises</h1>
             <div>
-                <button class="btn btn-primary" onclick="showAddExerciseModal()">Add New Exercise</button>
+                <button class="btn btn-primary" onclick="showCreateExerciseModal()">Add New Exercise</button>
                 <p>Browse and search exercises by muscle group</p>
                 <button id="delete-all-exercises" class="btn btn-danger">Delete All Exercises</button>
             </div>
@@ -2003,7 +2003,7 @@ async function addWorkoutToCalendar(programId, dateString) {
     }
 }
 
-function showAddExerciseModal() {
+function showCreateExerciseModal() {
     const muscleGroupOptions = muscleGroups.map(group => `<option value="${group.id}">${group.name}</option>`).join('');
 
     const modal = document.createElement('div');

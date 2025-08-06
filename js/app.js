@@ -480,6 +480,7 @@ function loadExercisesPage(container) {
             <div class="page-header">
             <h1>Exercises</h1>
             <div>
+                <button class="btn btn-primary" onclick="showAddExerciseModal()">Add New Exercise</button>
                 <p>Browse and search exercises by muscle group</p>
                 <button id="delete-all-exercises" class="btn btn-danger">Delete All Exercises</button>
             </div>
@@ -1999,6 +2000,72 @@ async function addWorkoutToCalendar(programId, dateString) {
     } catch (error) {
         console.error('Error adding workout to calendar:', error);
         showError('Failed to add workout to calendar');
+    }
+}
+
+function showAddExerciseModal() {
+    const muscleGroupOptions = muscleGroups.map(group => `<option value="${group.id}">${group.name}</option>`).join('');
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content program-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Add New Exercise</h2>
+            <form id="addExerciseForm" onsubmit="addExercise(event)">
+                <div class="form-group">
+                    <label for="exerciseName">Exercise Name</label>
+                    <input type="text" id="exerciseName" required>
+                </div>
+                <div class="form-group">
+                    <label for="exerciseDescription">Description</label>
+                    <textarea id="exerciseDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="muscleGroup">Muscle Group</label>
+                    <select id="muscleGroup" required>
+                        ${muscleGroupOptions}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="difficulty">Difficulty</label>
+                    <select id="difficulty">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal(this.closest('.modal'))">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Exercise</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+async function addExercise(event) {
+    event.preventDefault();
+
+    const name = document.getElementById('exerciseName').value;
+    const description = document.getElementById('exerciseDescription').value;
+    const muscle_group_id = document.getElementById('muscleGroup').value;
+    const difficulty_level = document.getElementById('difficulty').value;
+
+    const { data, error } = await supabase
+        .from('exercises')
+        .insert([{ name, description, muscle_group_id, difficulty_level }]);
+
+    if (error) {
+        console.error('Error adding exercise:', error);
+        showError('Failed to add exercise.');
+    } else {
+        showSuccess('Exercise added successfully!');
+        closeModal(document.getElementById('addExerciseForm').closest('.modal'));
+        loadExercises();
     }
 }
 

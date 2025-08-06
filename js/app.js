@@ -2548,1094 +2548,731 @@ function showExerciseSelection(programId, dateString) {
         </div>
     `;
     
-    // Add to the page
-    const container = document.querySelector('.container');
-    const existingSection = document.getElementById('exerciseSelectionSection');
-    if (existingSection) {
-        existingSection.remove();
+    // Append to main content area or modal
+    const mainContent = document.querySelector('.main-content');
+    if (mainContent) {
+        mainContent.appendChild(exerciseSection);
     }
-    container.appendChild(exerciseSection);
-    
-    // Setup weight auto-fill
-    setTimeout(() => {
-        setupWeightAutoFill();
-    }, 100);
 }
 
 function getProgramExercises(programNameOrId) {
-    // First try to find by ID (for programId)
-    if (typeof programNameOrId === 'string' && programNameOrId.match(/^\d+$/)) {
-        const program = workoutPrograms.find(p => p.id == programNameOrId);
-        if (program && program.exercises) {
-            return program.exercises;
+    const programId = typeof programNameOrId === 'string' ? 
+                      workoutPrograms.find(p => p.name === programNameOrId)?.id :
+                      programNameOrId;
+
+    if (!programId) {
+        console.warn(`Program not found: ${programNameOrId}`);
+        return [];
+    }
+    
+    const storedExercises = localStorage.getItem(`program_${programId}_exercises`);
+    
+    if (storedExercises) {
+        try {
+            const parsedExercises = JSON.parse(storedExercises);
+            
+            // Validate that exercises is an array
+            if (Array.isArray(parsedExercises)) {
+                return parsedExercises;
+            } else {
+                console.warn('Stored exercises is not an array, returning empty array');
+                return [];
+            }
+        } catch (e) {
+            console.error('Error parsing stored exercises:', e);
+            return [];
         }
     }
     
-    // Fallback to name-based lookup (for backward compatibility)
-    const programName = typeof programNameOrId === 'string' ? programNameOrId : '';
-    
-    // Mock exercises based on program name
-    switch(programName) {
-        case 'Cardio & Strength Mix':
-            return [
-                { id: 1, name: 'Burpees', sets: 3, reps: 15 },
-                { id: 2, name: 'Push-ups', sets: 3, reps: 12 },
-                { id: 3, name: 'Squats', sets: 3, reps: 20 },
-                { id: 4, name: 'Mountain Climbers', sets: 3, reps: 30 },
-                { id: 5, name: 'Plank', sets: 3, reps: 45 }
-            ];
-        case 'Beginner Full Body':
-            return [
-                { id: 6, name: 'Wall Push-ups', sets: 3, reps: 10 },
-                { id: 7, name: 'Assisted Squats', sets: 3, reps: 15 },
-                { id: 8, name: 'Knee Plank', sets: 3, reps: 30 },
-                { id: 9, name: 'Marching in Place', sets: 3, reps: 60 }
-            ];
-        case 'Advanced Power':
-            return [
-                { id: 10, name: 'Power Clean', sets: 5, reps: 3 },
-                { id: 11, name: 'Snatch', sets: 4, reps: 2 },
-                { id: 12, name: 'Box Jumps', sets: 4, reps: 8 },
-                { id: 13, name: 'Push Press', sets: 4, reps: 5 },
-                { id: 14, name: 'Kettlebell Swings', sets: 3, reps: 15 }
-            ];
-        default:
-            return [
-                { id: 15, name: 'Push-ups', sets: 3, reps: 10 },
-                { id: 16, name: 'Squats', sets: 3, reps: 15 },
-                { id: 17, name: 'Plank', sets: 3, reps: 30 }
-            ];
-    }
+    return [];
 }
 
-// Function removed - no longer needed with simplified calendar flow
-
+// Function to setup autofill for weight inputs
 function setupWeightAutoFill() {
-    document.addEventListener('input', (event) => {
-        if (event.target.classList.contains('weight-input')) {
-            const weightValue = event.target.value;
-            const exerciseCard = event.target.closest('.exercise-tracking-card');
+    const weightInputs = document.querySelectorAll('.weight-input');
+    
+    weightInputs.forEach(input => {
+        input.addEventListener('blur', (event) => {
+            const currentInput = event.target;
+            const exerciseId = currentInput.getAttribute('data-exercise-id');
+            const currentSet = parseInt(currentInput.getAttribute('data-set'));
+            const weight = currentInput.value;
             
-            if (exerciseCard && weightValue) {
-                // Only fill other weight inputs within the same exercise card
-                const weightInputs = exerciseCard.querySelectorAll('input[data-field="weight"]');
-                weightInputs.forEach(input => {
-                    if (input !== event.target) {
-                        input.value = weightValue;
+            if (weight) {
+                // Find all subsequent weight inputs for the same exercise
+                const subsequentInputs = document.querySelectorAll(
+                    `.weight-input[data-exercise-id="${exerciseId}"]`
+                );
+                
+                subsequentInputs.forEach(nextInput => {
+                    const nextSet = parseInt(nextInput.getAttribute('data-set'));
+                    if (nextSet > currentSet && !nextInput.value) {
+                        nextInput.value = weight;
                     }
                 });
             }
-        }
+        });
     });
 }
 
+// Generate set input fields
 function generateSetInputs(sets, targetReps) {
-    let html = '';
+    let inputs = '';
     for (let i = 1; i <= sets; i++) {
-        html += `
-            <div class="set-input-group">
-                <h5>Set ${i}</h5>
-                <div class="set-inputs">
-                    <div class="input-group">
-                        <label>Reps:</label>
-                        <input type="number" class="set-input" data-field="reps" placeholder="${targetReps}" min="0" max="100">
-                    </div>
-                    <div class="input-group">
-                        <label>Weight (lbs):</label>
-                        <input type="number" class="set-input weight-input" data-field="weight" placeholder="0" min="0" max="500">
-                    </div>
-                </div>
+        inputs += `
+            <div class="set-input-row">
+                <span class="set-number">Set ${i}:</span>
+                <input type="number" class="weight-input" placeholder="Weight (kg/lbs)">
+                <input type="number" class="reps-input" placeholder="Reps (${targetReps})">
             </div>
         `;
     }
-    return html;
+    return inputs;
 }
 
-function saveExerciseProgress(exerciseId, programId, dateString) {
+// Function to save exercise progress
+async function saveExerciseProgress(exerciseId, programId, dateString) {
     try {
-        console.log('=== SAVE PROGRESS START ===');
-        console.log('Parameters:', { exerciseId, programId, dateString });
+        const trackingCard = document.querySelector(`.exercise-tracking-card[data-exercise-id="${exerciseId}"]`);
         
-        // Get exercise name from the page
-        const exerciseNameElement = document.querySelector('.exercise-tracking-card h4');
-        const exerciseName = exerciseNameElement ? exerciseNameElement.textContent : 'Unknown Exercise';
-        console.log('Exercise name:', exerciseName);
+        if (!trackingCard) {
+            console.error(`Tracking card not found for exercise ${exerciseId}`);
+            return;
+        }
         
-        // Create a simple test save first
-        const testProgress = {
-            exerciseId: exerciseId,
-            programId: programId,
-            date: dateString,
-            exerciseName: exerciseName,
-            sets: [
-                {
-                    setNumber: 1,
-                    reps: 10,
-                    weight: 100,
-                    completed: true
-                }
-            ]
-        };
+        const setInputs = trackingCard.querySelectorAll('.set-input-row');
+        const setsData = [];
         
-        // Try to save test data first
-        const testKey = `test_progress_${Date.now()}`;
-        localStorage.setItem(testKey, JSON.stringify(testProgress));
-        console.log('Test save successful with key:', testKey);
-        
-        // Now try to get actual data from the form
-        let actualProgress = {
-            exerciseId: exerciseId,
-            programId: programId,
-            date: dateString,
-            exerciseName: exerciseName,
-            sets: []
-        };
-        
-        let hasData = false;
-        
-        // Try multiple approaches to find the inputs
-        console.log('Attempting to find input elements...');
-        
-        // Approach 1: Look for any number inputs in the tracking section
-        const trackingSection = document.querySelector('.exercise-tracking-card');
-        if (trackingSection) {
-            const allInputs = trackingSection.querySelectorAll('input[type="number"]');
-            console.log('Found number inputs in tracking section:', allInputs.length);
+        setInputs.forEach((setRow, index) => {
+            const weightInput = setRow.querySelector('.weight-input');
+            const repsInput = setRow.querySelector('.reps-input');
             
-            // Group inputs by sets (assuming they're in order: reps1, weight1, reps2, weight2, etc.)
-            for (let i = 0; i < allInputs.length; i += 2) {
-                const repsInput = allInputs[i];
-                const weightInput = allInputs[i + 1];
-                const setNumber = Math.floor(i / 2) + 1;
+            if (weightInput && repsInput) {
+                const weight = weightInput.value;
+                const reps = repsInput.value;
                 
-                if (repsInput && weightInput) {
-                    const reps = repsInput.value.trim();
-                    const weight = weightInput.value.trim();
-                    
-                    console.log(`Set ${setNumber}:`, { reps, weight });
-                    
-                    if (reps !== '' || weight !== '') {
-                        const setData = {
-                            setNumber: setNumber,
-                            reps: reps !== '' ? parseInt(reps) : 0,
-                            weight: weight !== '' ? parseInt(weight) : 0,
-                            completed: true
-                        };
-                        
-                        actualProgress.sets.push(setData);
-                        hasData = true;
-                        console.log(`Set ${setNumber} data collected:`, setData);
-                    }
+                if (weight || reps) {
+                    setsData.push({
+                        set: index + 1,
+                        weight: weight ? parseFloat(weight) : null,
+                        reps: reps ? parseInt(reps) : null,
+                    });
                 }
             }
-        }
+        });
         
-        // If no data found, use test data
-        if (!hasData) {
-            console.log('No actual data found, using test data');
-            actualProgress = testProgress;
-            hasData = true;
-        }
+        // Find the exercise name
+        const exerciseName = trackingCard.querySelector('h4').textContent;
         
-        // Save the actual progress
-        const key = `exercise_progress_${dateString}_${exerciseId}`;
-        localStorage.setItem(key, JSON.stringify(actualProgress));
+        // Get existing tracking data for the date
+        const trackingKey = `exercise_tracking_${dateString}`;
+        let existingTracking = localStorage.getItem(trackingKey);
+        let trackingData = existingTracking ? JSON.parse(existingTracking) : {};
         
-        console.log('Final progress saved:', actualProgress);
-        showSuccess('Exercise progress saved successfully!');
+        // Update the tracking data for this exercise
+        trackingData[exerciseId] = {
+            exerciseName: exerciseName,
+            sets: setsData,
+        };
         
-        // Update the save button
-        const saveBtn = document.querySelector('.tracking-actions .btn-primary');
-        if (saveBtn) {
-            saveBtn.textContent = 'Saved ✓';
-            saveBtn.classList.add('saved');
-            saveBtn.disabled = true;
-        }
+        // Save back to localStorage
+        localStorage.setItem(trackingKey, JSON.stringify(trackingData));
         
-        console.log('=== SAVE PROGRESS COMPLETE ===');
+        // Show success message
+        showSuccess(`Progress for ${exerciseName} saved successfully!`);
         
     } catch (error) {
         console.error('Error saving exercise progress:', error);
-        showError('Failed to save progress: ' + error.message);
+        showError('Failed to save exercise progress.');
     }
 }
 
+// Test function to check if the save function is called
 function testSaveFunction(exerciseId, programId, dateString) {
-    console.log('=== TEST SAVE FUNCTION ===');
-    console.log('Testing with:', { exerciseId, programId, dateString });
+    console.log(`testSaveFunction called with:
+        Exercise ID: ${exerciseId}
+        Program ID: ${programId}
+        Date String: ${dateString}`);
     
-    // Test 1: Check if elements exist
-    const repsInputs = document.querySelectorAll('input[id^="reps_"]');
-    const weightInputs = document.querySelectorAll('input[id^="weight_"]');
-    
-    console.log('Found reps inputs:', repsInputs.length);
-    console.log('Found weight inputs:', weightInputs.length);
-    
-    // Test 2: Check each input
-    for (let i = 1; i <= Math.max(repsInputs.length, weightInputs.length); i++) {
-        const repsEl = document.getElementById(`reps_${i}`);
-        const weightEl = document.getElementById(`weight_${i}`);
-        
-        console.log(`Set ${i}:`, {
-            repsElement: repsEl ? 'EXISTS' : 'MISSING',
-            weightElement: weightEl ? 'EXISTS' : 'MISSING',
-            repsValue: repsEl ? repsEl.value : 'N/A',
-            weightValue: weightEl ? weightEl.value : 'N/A'
-        });
+    // Get the tracking card
+    const trackingCard = document.querySelector(`.exercise-tracking-card[data-exercise-id="${exerciseId}"]`);
+    if (!trackingCard) {
+        console.error('Tracking card not found!');
+        return;
     }
     
-    // Test 3: Try to save a simple test
-    const testData = {
-        exerciseId: exerciseId,
-        programId: programId,
-        date: dateString,
-        exerciseName: 'Test Exercise',
-        sets: [
-            { setNumber: 1, reps: 10, weight: 100, completed: true }
-        ]
-    };
+    // Get the set inputs
+    const setInputs = trackingCard.querySelectorAll('.set-input-row');
+    if (setInputs.length === 0) {
+        console.error('No set inputs found!');
+        return;
+    }
     
-    const testKey = `test_progress_${Date.now()}`;
-    localStorage.setItem(testKey, JSON.stringify(testData));
-    
-    console.log('Test data saved with key:', testKey);
-    console.log('Test data:', testData);
-    
-    // Verify it was saved
-    const retrieved = localStorage.getItem(testKey);
-    console.log('Retrieved test data:', retrieved);
-    
-    showSuccess('Test save completed - check console for details');
+    // Log the data from the inputs
+    setInputs.forEach((setRow, index) => {
+        const weightInput = setRow.querySelector('.weight-input');
+        const repsInput = setRow.querySelector('.reps-input');
+        console.log(`Set ${index + 1}: Weight = ${weightInput.value}, Reps = ${repsInput.value}`);
+    });
 }
 
-// Utility function to clear deleted programs (for testing)
+// Clear all deleted programs from localStorage
 function clearDeletedPrograms() {
     localStorage.removeItem('deletedPrograms');
-    showSuccess('Deleted programs list cleared');
-    console.log('Deleted programs list cleared');
+    showSuccess('Deleted programs list has been cleared. All programs will now be visible.');
+    loadWorkoutPrograms(); // Reload programs to reflect changes
 }
 
-// Manual save function for testing (call from browser console)
+// Manual save function to test saving data structure
 function manualSave() {
-    try {
-        console.log('=== MANUAL SAVE TEST ===');
-        
-        // Get current date
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Create test data
-        const testData = {
-            exerciseId: 'manual_test',
-            programId: 'manual_test',
-            date: today,
-            exerciseName: 'Manual Test Exercise',
+    const testData = {
+        '123': {
+            exerciseName: 'Test Exercise',
             sets: [
-                { setNumber: 1, reps: 12, weight: 135, completed: true },
-                { setNumber: 2, reps: 10, weight: 135, completed: true },
-                { setNumber: 3, reps: 8, weight: 135, completed: true }
+                { set: 1, weight: 50, reps: 10 },
+                { set: 2, weight: 50, reps: 9 },
             ]
-        };
-        
-        // Save to localStorage
-        const key = `manual_test_${Date.now()}`;
-        localStorage.setItem(key, JSON.stringify(testData));
-        
-        console.log('Manual save successful:', testData);
-        showSuccess('Manual save test completed!');
-        
-        // Verify it was saved
-        const retrieved = localStorage.getItem(key);
-        console.log('Retrieved data:', retrieved);
-        
-        return true;
+        }
+    };
+    
+    const dateString = new Date().toISOString().split('T')[0];
+    const trackingKey = `exercise_tracking_${dateString}`;
+    
+    try {
+        localStorage.setItem(trackingKey, JSON.stringify(testData));
+        console.log('Manual save successful. Data saved:', testData);
+        showSuccess('Test data saved successfully!');
     } catch (error) {
-        console.error('Manual save failed:', error);
-        showError('Manual save failed: ' + error.message);
-        return false;
+        console.error('Error during manual save:', error);
+        showError('Failed to save test data.');
     }
 }
 
-// Function to check localStorage status
+// Function to check localStorage for saved data
 function checkLocalStorage() {
-    try {
-        console.log('=== LOCALSTORAGE CHECK ===');
-        
-        // Test if localStorage is available
-        const testKey = 'localStorage_test';
-        localStorage.setItem(testKey, 'test_value');
-        const retrieved = localStorage.getItem(testKey);
-        localStorage.removeItem(testKey);
-        
-        if (retrieved === 'test_value') {
-            console.log('✅ localStorage is working');
-            showSuccess('localStorage is working correctly');
-        } else {
-            console.log('❌ localStorage test failed');
-            showError('localStorage test failed');
-        }
-        
-        // Check available space
-        const testData = 'x'.repeat(1000);
-        let count = 0;
-        try {
-            while (count < 100) {
-                localStorage.setItem(`space_test_${count}`, testData);
-                count++;
+    const keys = Object.keys(localStorage);
+    console.log('localStorage keys:', keys);
+    
+    keys.forEach(key => {
+        if (key.startsWith('exercise_tracking_')) {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                console.log(`Data for ${key}:`, data);
+            } catch (error) {
+                console.error(`Error parsing data for ${key}:`, error);
             }
-        } catch (e) {
-            console.log('localStorage space limit reached at:', count * 1000, 'bytes');
         }
-        
-        // Clean up test data
-        for (let i = 0; i < count; i++) {
-            localStorage.removeItem(`space_test_${i}`);
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('localStorage check failed:', error);
-        showError('localStorage check failed: ' + error.message);
-        return false;
-    }
+    });
 }
 
 // Function to check modal structure
 function checkModalStructure() {
-    try {
-        console.log('=== MODAL STRUCTURE CHECK ===');
+    const modal = document.querySelector('.modal');
+    if (!modal) {
+        console.error('Modal not found!');
+        return;
+    }
+    
+    const saveButton = modal.querySelector('button.btn-primary[onclick^="saveExerciseTracking"]');
+    
+    if (!saveButton) {
+        console.error('Save button not found in modal!');
+    } else {
+        const onclickAttr = saveButton.getAttribute('onclick');
+        console.log('Save button onclick attribute:', onclickAttr);
         
-        // Check if modal exists
-        const modal = document.querySelector('.modal');
-        console.log('Modal found:', modal);
-        
-        if (!modal) {
-            console.log('❌ No modal found');
-            return false;
+        const params = onclickAttr.match(/\((.*?)\)/);
+        if (params && params[1]) {
+            const [exerciseId, dateString, programId] = params[1].split(',').map(p => p.trim().replace(/'/g, ''));
+            console.log(`Parsed parameters:
+                Exercise ID: ${exerciseId}
+                Date String: ${dateString}
+                Program ID: ${programId}`);
+        } else {
+            console.error('Could not parse parameters from onclick attribute.');
         }
-        
-        // Check modal content
-        const modalContent = modal.querySelector('.modal-content');
-        console.log('Modal content found:', modalContent);
-        
-        if (!modalContent) {
-            console.log('❌ No modal content found');
-            return false;
-        }
-        
-        // Check for inputs
-        const numberInputs = modalContent.querySelectorAll('input[type="number"]');
-        const dataSetInputs = modalContent.querySelectorAll('input[data-set]');
-        const allInputs = modalContent.querySelectorAll('input');
-        
-        console.log('Number inputs:', numberInputs.length);
-        console.log('Data-set inputs:', dataSetInputs.length);
-        console.log('All inputs:', allInputs.length);
-        
-        // Check for buttons
-        const buttons = modalContent.querySelectorAll('button');
-        console.log('Buttons found:', buttons.length);
-        
-        // Check for exercise name
-        const exerciseName = modalContent.querySelector('h2');
-        console.log('Exercise name element:', exerciseName);
-        if (exerciseName) {
-            console.log('Exercise name:', exerciseName.textContent);
-        }
-        
-        // Show modal structure
-        console.log('Modal HTML structure:');
-        console.log(modalContent.innerHTML);
-        
-        return true;
-    } catch (error) {
-        console.error('Modal structure check failed:', error);
-        return false;
     }
 }
 
-// Function to test save with current modal
+// Function to test the save process step-by-step
 function testModalSave() {
-    try {
-        console.log('=== TEST MODAL SAVE ===');
-        
-        // Get current date
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Call the save function with test parameters
-        saveExerciseTracking('test_exercise', today, 'test_program');
-        
-        return true;
-    } catch (error) {
-        console.error('Test modal save failed:', error);
-        return false;
+    // 1. Get the modal
+    const modal = document.querySelector('.modal');
+    if (!modal) {
+        console.error('No modal found.');
+        return;
     }
+
+    // 2. Get the save button
+    const saveButton = modal.querySelector('button[onclick^="saveExerciseTracking"]');
+    if (!saveButton) {
+        console.error('Save button not found.');
+        return;
+    }
+
+    // 3. Simulate a click
+    saveButton.click();
 }
 
-// Function to test each step individually
 function testSaveStep(step) {
-    try {
-        console.log(`=== TESTING SAVE STEP ${step} ===`);
-        
-        switch(step) {
-            case 1:
-                console.log('Step 1: Parameter validation');
-                console.log('Parameters:', { exerciseId: 'test', dateString: '2024-01-15', programId: 'test' });
-                break;
-                
-            case 2:
-                console.log('Step 2: Modal detection');
-                const modal = document.querySelector('.modal');
-                console.log('Modal found:', modal);
-                break;
-                
-            case 3:
-                console.log('Step 3: Modal content detection');
-                const modalContent = document.querySelector('.modal .modal-content');
-                console.log('Modal content found:', modalContent);
-                break;
-                
-            case 4:
-                console.log('Step 4: Input detection');
-                const modalContent2 = document.querySelector('.modal .modal-content');
-                if (modalContent2) {
-                    const numberInputs = modalContent2.querySelectorAll('input[type="number"]');
-                    const dataSetInputs = modalContent2.querySelectorAll('input[data-set]');
-                    const allInputs = modalContent2.querySelectorAll('input');
-                    console.log('Input counts:', { numberInputs: numberInputs.length, dataSetInputs: dataSetInputs.length, allInputs: allInputs.length });
-                } else {
-                    console.log('No modal content found for input detection');
-                }
-                break;
-                
-            case 10:
-                console.log('Step 10: localStorage test');
-                const testKey = 'test_localStorage';
-                localStorage.setItem(testKey, 'test');
-                const testResult = localStorage.getItem(testKey);
-                localStorage.removeItem(testKey);
-                console.log('localStorage test result:', testResult);
-                break;
-                
-            case 11:
-                console.log('Step 11: JSON stringify test');
-                const testData = { test: 'data', number: 123 };
-                const jsonString = JSON.stringify(testData);
-                console.log('JSON stringify result:', jsonString);
-                break;
-                
-            default:
-                console.log(`Step ${step} not implemented for testing`);
+    const modal = document.querySelector('.modal');
+    if (!modal) {
+        console.error('No modal is open.');
+        return;
+    }
+    
+    const saveButton = modal.querySelector('button[onclick^="saveExerciseTracking"]');
+    if (!saveButton) {
+        console.error('Save button not found.');
+        return;
+    }
+
+    const onclickAttr = saveButton.getAttribute('onclick');
+    const params = onclickAttr.match(/\((.*?)\)/)[1].split(',').map(p => p.trim().replace(/'/g, ''));
+    const [exerciseId, dateString, programId] = params;
+
+    if (step === 1) {
+        console.log('Step 1: Parameters from button:', { exerciseId, dateString, programId });
+    }
+    
+    if (step === 2) {
+        const trackingCard = document.querySelector(`.exercise-tracking-card[data-exercise-id="${exerciseId}"]`);
+        if (!trackingCard) {
+            console.error('Step 2: Tracking card not found.');
+            return;
         }
-        
-        return true;
-    } catch (error) {
-        console.error(`Test step ${step} failed:`, error);
-        return false;
+        console.log('Step 2: Tracking card found:', trackingCard);
+    }
+    
+    if (step === 3) {
+        const trackingCard = document.querySelector(`.exercise-tracking-card[data-exercise-id="${exerciseId}"]`);
+        const setInputs = trackingCard.querySelectorAll('.set-input-row');
+        const setsData = [];
+        setInputs.forEach((row, index) => {
+            setsData.push({
+                set: index + 1,
+                weight: row.querySelector('.weight-input').value,
+                reps: row.querySelector('.reps-input').value,
+            });
+        });
+        console.log('Step 3: Collected sets data:', setsData);
     }
 }
 
-// Function to run all save tests
+// Run all test steps
 function runAllSaveTests() {
-    console.log('=== RUNNING ALL SAVE TESTS ===');
-    
-    for (let step = 1; step <= 11; step++) {
-        if (step >= 5 && step <= 9) continue; // Skip steps that require modal
-        testSaveStep(step);
-        console.log('---');
+    for (let i = 1; i <= 3; i++) {
+        testSaveStep(i);
     }
-    
-    console.log('=== ALL TESTS COMPLETE ===');
 }
 
-// Super simple test function
 function simpleTest() {
+    console.log('Simple test running');
+    
+    const modal = document.querySelector('.modal');
+    if (!modal) {
+        console.error('No modal!');
+        return;
+    }
+    
+    console.log('Modal found:', modal);
+    
+    const saveBtn = modal.querySelector('button[onclick*="saveExerciseTracking"]');
+    if (!saveBtn) {
+        console.error('No save button!');
+        return;
+    }
+    
+    console.log('Save button found:', saveBtn);
+    
+    const onclickVal = saveBtn.getAttribute('onclick');
+    console.log('Onclick value:', onclickVal);
+    
     try {
-        console.log('=== SIMPLE TEST START ===');
-        
-        // Test 1: localStorage basic functionality
-        const testKey = 'simple_test_key';
-        const testValue = 'simple_test_value';
-        
-        localStorage.setItem(testKey, testValue);
-        const retrieved = localStorage.getItem(testKey);
-        
-        if (retrieved === testValue) {
-            console.log('✅ localStorage basic test PASSED');
-        } else {
-            console.log('❌ localStorage basic test FAILED');
-            return false;
-        }
-        
-        // Test 2: JSON stringify
-        const testObject = { test: 'data', number: 123 };
-        const jsonString = JSON.stringify(testObject);
-        const parsedObject = JSON.parse(jsonString);
-        
-        if (JSON.stringify(parsedObject) === jsonString) {
-            console.log('✅ JSON test PASSED');
-        } else {
-            console.log('❌ JSON test FAILED');
-            return false;
-        }
-        
-        // Test 3: Save exercise data
-        const exerciseData = {
-            exerciseId: 'test_123',
-            programId: 'program_456',
-            date: '2024-01-15',
-            exerciseName: 'Test Exercise',
-            sets: { 1: { weight: 135, reps: 12 } },
-            timestamp: new Date().toISOString()
-        };
-        
-        const saveKey = `exercise_test_${Date.now()}`;
-        localStorage.setItem(saveKey, JSON.stringify(exerciseData));
-        
-        const savedData = localStorage.getItem(saveKey);
-        if (savedData) {
-            const parsedData = JSON.parse(savedData);
-            if (parsedData.exerciseId === 'test_123') {
-                console.log('✅ Exercise data save test PASSED');
-            } else {
-                console.log('❌ Exercise data save test FAILED');
-                return false;
+        const result = onclickVal.match(/saveExerciseTracking\((.*?)\)/);
+        if (result && result[1]) {
+            const args = result[1].split(',').map(arg => arg.trim().replace(/'/g, ''));
+            console.log('Parsed args:', args);
+            
+            const [exerciseId, dateString, programId] = args;
+            
+            const card = document.querySelector(`.exercise-tracking-card[data-exercise-id="${exerciseId}"]`);
+            if (!card) {
+                console.error('Card not found for exercise:', exerciseId);
+                return;
             }
+            
+            const sets = card.querySelectorAll('.set-input-row');
+            const data = [];
+            sets.forEach(set => {
+                data.push({
+                    weight: set.querySelector('.weight-input').value,
+                    reps: set.querySelector('.reps-input').value,
+                });
+            });
+            
+            console.log('Collected data:', data);
+            
         } else {
-            console.log('❌ Exercise data save test FAILED - no data retrieved');
-            return false;
+            console.error('Could not parse onclick attribute');
         }
-        
-        // Clean up
-        localStorage.removeItem(testKey);
-        localStorage.removeItem(saveKey);
-        
-        console.log('=== ALL SIMPLE TESTS PASSED ===');
-        return true;
-        
-    } catch (error) {
-        console.error('Simple test failed:', error);
-        return false;
+    } catch (e) {
+        console.error('Error parsing onclick:', e);
     }
 }
 
-// Force save function - bypasses all DOM checks
+// Force save progress for the first exercise in the modal
 function forceSave() {
-    try {
-        console.log('=== FORCE SAVE START ===');
-        
-        const exerciseData = {
-            exerciseId: 'force_save_exercise',
-            programId: 'force_save_program',
-            date: new Date().toISOString().split('T')[0],
-            exerciseName: 'Force Save Exercise',
-            sets: {
-                1: { weight: 135, reps: 12 },
-                2: { weight: 135, reps: 10 },
-                3: { weight: 135, reps: 8 }
-            },
-            timestamp: new Date().toISOString()
-        };
-        
-        const key = `force_save_${Date.now()}`;
-        localStorage.setItem(key, JSON.stringify(exerciseData));
-        
-        console.log('✅ FORCE SAVE SUCCESSFUL!');
-        console.log('Saved with key:', key);
-        console.log('Data:', exerciseData);
-        
-        showSuccess('Force save successful!');
-        
-        return true;
-    } catch (error) {
-        console.error('Force save failed:', error);
-        showError('Force save failed: ' + error.message);
-        return false;
+    const modal = document.querySelector('.modal');
+    if (!modal) {
+        console.error('No modal found.');
+        return;
+    }
+
+    const saveButton = modal.querySelector('button[onclick^="saveExerciseTracking"]');
+    if (!saveButton) {
+        console.error('Save button not found.');
+        return;
+    }
+
+    const onclickAttr = saveButton.getAttribute('onclick');
+    const params = onclickAttr.match(/\((.*?)\)/);
+    
+    if (params && params[1]) {
+        const args = params[1].split(',').map(p => p.trim().replace(/'/g, ''));
+        saveExerciseTracking(...args);
+    } else {
+        console.error('Could not parse params from save button.');
     }
 }
 
+// Function to reset all exercise tracking data
 function resetExerciseTracking() {
-    const inputs = document.querySelectorAll('.set-input');
-    inputs.forEach(input => {
-        input.value = '';
-    });
-    
-    const saveBtn = document.querySelector('.tracking-actions .btn-primary');
-    saveBtn.textContent = 'Save Progress';
-    saveBtn.classList.remove('saved');
-    saveBtn.disabled = false;
+    const confirmation = confirm('Are you sure you want to reset all exercise tracking data? This cannot be undone.');
+    if (confirmation) {
+        for (const key of Object.keys(localStorage)) {
+            if (key.startsWith('exercise_tracking_')) {
+                localStorage.removeItem(key);
+            }
+        }
+        showSuccess('All exercise tracking data has been reset.');
+    }
 }
 
-// Utility functions
+// Show user feedback messages
 function showError(message) {
-    console.error('Error:', message);
-    
-    // Create an error notification
-    const notification = document.createElement('div');
-    notification.className = 'error-notification';
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #dc3545;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    // Remove notification after 4 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 4000);
+    const errorBanner = document.getElementById('error-banner');
+    if (errorBanner) {
+        errorBanner.textContent = message;
+        errorBanner.style.display = 'block';
+        setTimeout(() => {
+            errorBanner.style.display = 'none';
+        }, 5000);
+    } else {
+        const banner = document.createElement('div');
+        banner.id = 'error-banner';
+        banner.className = 'error-banner';
+        banner.textContent = message;
+        document.body.appendChild(banner);
+        banner.style.display = 'block';
+        setTimeout(() => {
+            banner.style.display = 'none';
+        }, 5000);
+    }
 }
 
-// Exercise editing functions
 function toggleEditMode(exerciseId) {
-    const card = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-    const editBtn = card.querySelector('.edit-btn');
-    const saveBtn = card.querySelector('.save-btn');
-    const cancelBtn = card.querySelector('.cancel-btn');
-    const editableFields = card.querySelectorAll('.editable-field');
-    
-    // Store original values for cancel
-    editableFields.forEach(field => {
-        field.setAttribute('data-original-value', field.textContent);
-    });
-    
-    // Show/hide buttons
-    editBtn.style.display = 'none';
-    saveBtn.style.display = 'inline-block';
-    cancelBtn.style.display = 'inline-block';
-    
-    // Make fields editable
-    editableFields.forEach(field => {
-        const fieldName = field.getAttribute('data-field');
-        const currentValue = field.textContent;
-        
-        if (fieldName === 'difficulty_level') {
-            // Create dropdown for difficulty
-            field.innerHTML = `
-                <select class="form-control edit-input">
-                    <option value="">Select Difficulty</option>
-                    <option value="beginner" ${currentValue === 'beginner' ? 'selected' : ''}>Beginner</option>
-                    <option value="intermediate" ${currentValue === 'intermediate' ? 'selected' : ''}>Intermediate</option>
-                    <option value="advanced" ${currentValue === 'advanced' ? 'selected' : ''}>Advanced</option>
-                </select>
-            `;
-        } else if (fieldName === 'muscle_group_name') {
-            // Create dropdown for muscle groups
-            const options = muscleGroups.map(group => 
-                `<option value="${group.id}" ${currentValue === group.name ? 'selected' : ''}>${group.name}</option>`
-            ).join('');
-            field.innerHTML = `
-                <select class="form-control edit-input">
-                    <option value="">Select Muscle Group</option>
-                    ${options}
-                </select>
-            `;
-        } else {
-            // Create text input for other fields
-            field.innerHTML = `<input type="text" class="form-control edit-input" value="${currentValue}">`;
-        }
-    });
+    const card = document.querySelector(`.card[data-exercise-id='${exerciseId}']`);
+    const fields = card.querySelectorAll('.editable-field');
+    const isEditing = card.classList.contains('editing');
+
+    if (isEditing) {
+        // Switch back to view mode
+        fields.forEach(field => {
+            const originalValue = field.getAttribute('data-original-value');
+            field.textContent = originalValue;
+        });
+        card.classList.remove('editing');
+        card.querySelector('.edit-btn').textContent = 'Edit';
+        card.querySelector('.save-btn').style.display = 'none';
+        card.querySelector('.cancel-btn').style.display = 'none';
+    } else {
+        // Switch to edit mode
+        fields.forEach(field => {
+            const currentValue = field.textContent;
+            field.setAttribute('data-original-value', currentValue);
+            const fieldName = field.getAttribute('data-field');
+            if (fieldName === 'muscle_group_name') {
+                const select = document.createElement('select');
+                select.innerHTML = muscleGroups.map(g => `<option value="${g.name}" ${g.name === currentValue ? 'selected' : ''}>${g.name}</option>`).join('');
+                field.innerHTML = '';
+                field.appendChild(select);
+            } else if (fieldName === 'difficulty_level') {
+                const select = document.createElement('select');
+                select.innerHTML = ['beginner', 'intermediate', 'advanced'].map(d => `<option value="${d}" ${d === currentValue ? 'selected' : ''}>${d}</option>`).join('');
+                field.innerHTML = '';
+                field.appendChild(select);
+            } else {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = currentValue;
+                field.innerHTML = '';
+                field.appendChild(input);
+            }
+        });
+        card.classList.add('editing');
+        card.querySelector('.edit-btn').textContent = 'Cancel';
+        card.querySelector('.save-btn').style.display = 'inline-block';
+        card.querySelector('.cancel-btn').style.display = 'inline-block';
+    }
 }
 
 function cancelEditMode(exerciseId) {
-    const card = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-    const editBtn = card.querySelector('.edit-btn');
-    const saveBtn = card.querySelector('.save-btn');
-    const cancelBtn = card.querySelector('.cancel-btn');
-    const editableFields = card.querySelectorAll('.editable-field');
-    
-    // Show/hide buttons
-    editBtn.style.display = 'inline-block';
-    saveBtn.style.display = 'none';
-    cancelBtn.style.display = 'none';
-    
-    // Restore original values
-    editableFields.forEach(field => {
+    const card = document.querySelector(`.card[data-exercise-id='${exerciseId}']`);
+    const fields = card.querySelectorAll('.editable-field');
+    fields.forEach(field => {
         const originalValue = field.getAttribute('data-original-value');
-        field.textContent = originalValue;
+        field.innerHTML = originalValue;
     });
+    card.classList.remove('editing');
+    card.querySelector('.edit-btn').textContent = 'Edit';
+    card.querySelector('.save-btn').style.display = 'none';
+    card.querySelector('.cancel-btn').style.display = 'none';
+}
+
+async function getMuscleGroupIdByName(name) {
+    const group = muscleGroups.find(g => g.name === name);
+    return group ? group.id : null;
 }
 
 async function saveExerciseChanges(exerciseId) {
-    const card = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-    const editableFields = card.querySelectorAll('.editable-field');
-    const editBtn = card.querySelector('.edit-btn');
-    const saveBtn = card.querySelector('.save-btn');
-    const cancelBtn = card.querySelector('.cancel-btn');
-    
-    // Collect updated values
-    const updates = {};
-    editableFields.forEach(field => {
+    const card = document.querySelector(`.card[data-exercise-id='${exerciseId}']`);
+    const fields = card.querySelectorAll('.editable-field');
+    const updatedData = {};
+
+    for (const field of fields) {
         const fieldName = field.getAttribute('data-field');
-        const input = field.querySelector('.edit-input');
-        
+        const input = field.querySelector('input, select');
         if (input) {
-            if (input.tagName === 'SELECT') {
-                updates[fieldName] = input.value;
+            let value = input.value;
+            if (fieldName === 'muscle_group_name') {
+                const muscleGroupId = await getMuscleGroupIdByName(value);
+                if (muscleGroupId) {
+                    updatedData['muscle_group_id'] = muscleGroupId;
+                } else {
+                    showError(`Invalid muscle group: ${value}`);
+                    return;
+                }
             } else {
-                updates[fieldName] = input.value;
+                updatedData[fieldName] = value;
             }
         }
-    });
-    
-    try {
-        // Update in Supabase
+    }
+
+    if (Object.keys(updatedData).length > 0) {
         const { error } = await supabase
             .from('exercises')
-            .update(updates)
+            .update(updatedData)
             .eq('id', exerciseId);
-        
-        if (error) throw error;
-        
-        // Update local data
-        const exerciseIndex = exercises.findIndex(e => e.id === exerciseId);
-        if (exerciseIndex !== -1) {
-            exercises[exerciseIndex] = { ...exercises[exerciseIndex], ...updates };
+
+        if (error) {
+            console.error('Error updating exercise:', error);
+            showError('Failed to update exercise.');
+        } else {
+            showSuccess('Exercise updated successfully!');
+            loadExercises(); // Refresh the list
         }
-        
-        // Show/hide buttons
-        editBtn.style.display = 'inline-block';
-        saveBtn.style.display = 'none';
-        cancelBtn.style.display = 'none';
-        
-        // Update display
-        editableFields.forEach(field => {
-            const fieldName = field.getAttribute('data-field');
-            const newValue = updates[fieldName] || field.getAttribute('data-original-value');
-            field.textContent = newValue;
-        });
-        
-        // Show success message
-        showSuccess('Exercise updated successfully!');
-        
-    } catch (error) {
-        console.error('Error updating exercise:', error);
-        showError('Failed to update exercise');
-        // Restore original values on error
-        cancelEditMode(exerciseId);
     }
 }
 
 function showSuccess(message) {
-    console.log('Success:', message);
-    
-    // Create a success notification
-    const notification = document.createElement('div');
-    notification.className = 'success-notification';
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #28a745;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        animation: slideIn 0.3s ease;
-    `;
-    notification.textContent = message;
-    
-    // Add animation CSS
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-    
-    document.body.appendChild(notification);
-    
-    // Remove notification after 3 seconds
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-        }
-    }, 3000);
+    const successBanner = document.getElementById('success-banner');
+    if (successBanner) {
+        successBanner.textContent = message;
+        successBanner.style.display = 'block';
+        setTimeout(() => {
+            successBanner.style.display = 'none';
+        }, 3000);
+    } else {
+        const banner = document.createElement('div');
+        banner.id = 'success-banner';
+        banner.className = 'success-banner';
+        banner.textContent = message;
+        document.body.appendChild(banner);
+        banner.style.display = 'block';
+        setTimeout(() => {
+            banner.style.display = 'none';
+        }, 3000);
+    }
 }
 
+// Function to show the exercise tracking modal
 function showExerciseTracking(exerciseId, sets, reps, dateString, programId) {
     const exercise = exercises.find(e => e.id === exerciseId);
-    if (!exercise) return;
-    
-    // Load existing tracking data
+    if (!exercise) {
+        showError('Exercise not found.');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content exercise-tracking-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Track: ${exercise.name}</h2>
+            <p><strong>Date:</strong> ${formatDate(dateString)}</p>
+            <p><strong>Target:</strong> ${sets} sets of ${reps} reps</p>
+            
+            <div id="tracking-sets-container">
+                <!-- Set inputs will be generated here -->
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                <button class="btn btn-primary" onclick="saveExerciseTracking(${exerciseId}, '${dateString}', '${programId}')">Save Progress</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+
+    // Load existing data and generate set inputs
     loadExerciseTrackingData(exerciseId, dateString).then(trackingData => {
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content exercise-tracking-modal">
-                <span class="close" onclick="closeModal(this)">&times;</span>
-                <h2>${exercise.name}</h2>
-                <p><strong>Date:</strong> ${formatDate(dateString)}</p>
-                <p><strong>Target:</strong> ${sets} sets × ${reps} reps</p>
-                
-                <div class="exercise-tracking-form">
-                    <h3>Track Your Sets</h3>
-                    <div class="sets-container">
-                        ${generateSetInputs(sets, trackingData)}
-                    </div>
-                    
-                    <div class="tracking-actions">
-                        <button class="btn btn-secondary" onclick="saveExerciseTracking(${exerciseId}, '${dateString}', ${programId})">Save Progress</button>
-                        <button class="btn btn-secondary" onclick="showExerciseDetails(${exerciseId})">View Exercise Details</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
-        
-        // Add event listeners for input changes
-        setupTrackingInputs();
+        const setsContainer = document.getElementById('tracking-sets-container');
+        setsContainer.innerHTML = generateSetInputs(sets, trackingData);
     });
 }
 
+// Generate set inputs with existing data
 function generateSetInputs(sets, trackingData) {
-    let html = '';
-    for (let i = 1; i <= sets; i++) {
-        const setData = trackingData[i] || {};
-        html += `
+    let inputsHTML = '';
+    for (let i = 0; i < sets; i++) {
+        const setData = trackingData?.sets?.[i] || {};
+        inputsHTML += `
             <div class="set-input-group">
-                <h4>Set ${i}</h4>
-                <div class="set-inputs">
-                    <div class="input-group">
-                        <label>Weight (kg/lbs):</label>
-                        <input type="number" class="form-control weight-input" 
-                               data-set="${i}" data-field="weight" 
-                               value="${setData.weight || ''}" placeholder="0">
-                    </div>
-                    <div class="input-group">
-                        <label>Reps:</label>
-                        <input type="number" class="form-control reps-input" 
-                               data-set="${i}" data-field="reps" 
-                               value="${setData.reps || ''}" placeholder="0">
-                    </div>
-                    <div class="input-group">
-                        <label>Notes:</label>
-                        <input type="text" class="form-control notes-input" 
-                               data-set="${i}" data-field="notes" 
-                               value="${setData.notes || ''}" placeholder="Optional notes">
-                    </div>
-                </div>
+                <label>Set ${i + 1}</label>
+                <input type="number" class="weight-input" placeholder="Weight" value="${setData.weight || ''}">
+                <input type="number" class="reps-input" placeholder="Reps" value="${setData.reps || ''}">
             </div>
         `;
     }
-    return html;
+    return inputsHTML;
 }
 
+// Add event listeners to tracking inputs
 function setupTrackingInputs() {
-    // Add event listeners for real-time updates if needed
-    const inputs = document.querySelectorAll('.exercise-tracking-modal input');
-    inputs.forEach(input => {
-        input.addEventListener('change', function() {
-            // You can add real-time validation or auto-save here
-        });
+    document.body.addEventListener('input', event => {
+        if (event.target.matches('.weight-input, .reps-input')) {
+            const modal = event.target.closest('.modal');
+            const exerciseId = modal.dataset.exerciseId;
+            const dateString = modal.dataset.dateString;
+            // You can add auto-saving logic here if desired
+        }
     });
 }
 
+// Load tracking data for a specific exercise on a specific date
 async function loadExerciseTrackingData(exerciseId, dateString) {
-    try {
-        // This would load from your database
-        // For now, we'll use localStorage as a simple solution
-        const key = `tracking_${exerciseId}_${dateString}`;
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : {};
-    } catch (error) {
-        console.error('Error loading tracking data:', error);
-        return {};
-    }
+    const trackingKey = `exercise_tracking_${dateString}`;
+    const allTrackingData = JSON.parse(localStorage.getItem(trackingKey) || '{}');
+    return allTrackingData[exerciseId] || null;
 }
 
+// Save exercise tracking data
 async function saveExerciseTracking(exerciseId, dateString, programId) {
     try {
-        // Validate inputs
-        if (!validators.isRequired(exerciseId) || !validators.isRequired(dateString)) {
-            showError('Missing required data for saving');
-            return;
-        }
-        
-        // Find the exercise card directly (not in modal)
-        const exerciseCard = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
-        if (!exerciseCard) {
-            showError('Exercise card not found');
-            return;
-        }
-        
-        // Get exercise name from card
-        const exerciseNameElement = exerciseCard.querySelector('h4');
-        const exerciseName = exerciseNameElement ? validators.sanitizeHtml(exerciseNameElement.textContent) : 'Unknown Exercise';
-        
-        // Find all weight and reps inputs in this specific card
-        const weightInputs = exerciseCard.querySelectorAll('input[data-field="weight"]');
-        const repsInputs = exerciseCard.querySelectorAll('input[data-field="reps"]');
-        
-        const trackingData = {};
-        let hasData = false;
-        
-        // Process each set
-        for (let i = 0; i < weightInputs.length; i++) {
-            const weightInput = weightInputs[i];
-            const repsInput = repsInputs[i];
-            const setNumber = i + 1;
-            
-            if (weightInput && repsInput) {
-                const weight = weightInput.value.trim();
-                const reps = repsInput.value.trim();
-                
-                if (weight !== '' || reps !== '') {
-                    // Validate numbers
-                    if (weight !== '' && !validators.isValidNumber(weight, 0, 1000)) {
-                        showError(`Invalid weight value in set ${setNumber}`);
-                        return;
-                    }
-                    if (reps !== '' && !validators.isValidNumber(reps, 0, 1000)) {
-                        showError(`Invalid reps value in set ${setNumber}`);
-                        return;
-                    }
-                    
-                    trackingData[setNumber] = {
-                        weight: weight !== '' ? parseInt(weight) || 0 : 0,
-                        reps: reps !== '' ? parseInt(reps) || 0 : 0
-                    };
-                    hasData = true;
-                    }
+        const modal = document.querySelector('.exercise-tracking-modal');
+        const setInputs = modal.querySelectorAll('.set-input-group');
+        const setsData = [];
+
+        setInputs.forEach((setGroup, index) => {
+            const weight = setGroup.querySelector('.weight-input').value;
+            const reps = setGroup.querySelector('.reps-input').value;
+            if (weight || reps) {
+                setsData.push({
+                    setNumber: index + 1,
+                    weight: parseFloat(weight) || null,
+                    reps: parseInt(reps) || null,
+                });
             }
-        }
-        
-        if (!hasData) {
-            showError('No data to save. Please enter some values.');
-            return;
-        }
-        
-        // Create save data
-        const saveData = {
-            exerciseId: exerciseId,
-            programId: programId,
-            date: dateString,
-            exerciseName: exerciseName,
-            sets: trackingData,
-            timestamp: new Date().toISOString()
+        });
+
+        // Get all tracking data for the date
+        const trackingKey = `exercise_tracking_${dateString}`;
+        let allTrackingData = JSON.parse(localStorage.getItem(trackingKey) || '{}');
+
+        // Update data for the specific exercise
+        allTrackingData[exerciseId] = {
+            sets: setsData,
         };
-        
-        // Save to localStorage with both individual exercise key and date-based key
-        const individualKey = `exercise_tracking_${exerciseId}_${dateString}`;
-        const dateKey = `exercise_tracking_${dateString}`;
-        
-        // Save individual exercise data
-        localStorage.setItem(individualKey, JSON.stringify(saveData));
-        
-        // Also save to date-based collection for easy retrieval
-        let dateData = {};
-        try {
-            const existingDateData = localStorage.getItem(dateKey);
-            if (existingDateData) {
-                dateData = JSON.parse(existingDateData);
-            }
-        } catch (error) {
-            console.log('No existing date data found');
-        }
-        
-        // Add this exercise to the date collection
-        dateData[exerciseId] = {
-            exerciseName: exerciseName,
-            sets: Object.values(trackingData)
-        };
-        
-        localStorage.setItem(dateKey, JSON.stringify(dateData));
-        
-        // Verify the save
-        const retrieved = localStorage.getItem(individualKey);
-        if (retrieved) {
-            showSuccess('Exercise progress saved successfully!');
-        
-            // Update the save button
-            const saveBtn = exerciseCard.querySelector('.btn-primary');
-            if (saveBtn && saveBtn.textContent.includes('Save Progress')) {
-                saveBtn.textContent = 'Saved ✓';
-            saveBtn.classList.add('saved');
-                saveBtn.disabled = true;
-            }
-            
-        } else {
-            showError('Save verification failed');
-        }
-        
+
+        // Save back to localStorage
+        localStorage.setItem(trackingKey, JSON.stringify(allTrackingData));
+
+        showSuccess('Progress saved successfully!');
+        closeModal(modal);
+
     } catch (error) {
-        handleError('Save failed', error);
+        console.error('Failed to save exercise tracking:', error);
+        showError('Could not save progress. Please try again.');
     }
 }
 
 // Save all progress for the current workout
 async function saveAllProgress() {
     try {
-        const exerciseCards = document.querySelectorAll('.exercise-tracking-card');
-        let savedCount = 0;
-        let totalCount = exerciseCards.length;
-        
-        // Get the current date from the page
-        const dateElement = document.querySelector('.exercise-selection-section p strong');
-        let dateString = new Date().toISOString().split('T')[0]; // Default to today
-        
-        if (dateElement && dateElement.textContent.includes('Date:')) {
-            // Extract date from the page content
-            const dateText = dateElement.parentElement.textContent;
-            const dateMatch = dateText.match(/(\d{4}-\d{2}-\d{2})/);
-            if (dateMatch) {
-                dateString = dateMatch[1];
-            }
+        const trackingContainer = document.getElementById('exerciseTrackingList');
+        if (!trackingContainer) {
+            showError('No workout to save.');
+            return;
+        }
+
+        const exerciseItems = trackingContainer.querySelectorAll('.exercise-tracking-item');
+        if (exerciseItems.length === 0) {
+            showError('No exercises to save.');
+            return;
         }
         
-        // Get program ID from the page
-        const programId = document.querySelector('.exercise-selection-section')?.getAttribute('data-program-id') || '1';
-        
-        for (const card of exerciseCards) {
-            const exerciseId = card.getAttribute('data-exercise-id');
-            
-            if (exerciseId) {
-                try {
-                    await saveExerciseTracking(exerciseId, dateString, programId);
-                savedCount++;
-                } catch (error) {
-                    console.error('Error saving exercise:', exerciseId, error);
+        const dateString = new Date(document.querySelector('.workout-info p:last-child').textContent.split(': ')[1]).toISOString().split('T')[0];
+        let allTrackingData = JSON.parse(localStorage.getItem(`exercise_tracking_${dateString}`) || '{}');
+
+        exerciseItems.forEach(item => {
+            const exerciseId = item.dataset.exerciseId;
+            const setsContainer = item.querySelector('.sets-container');
+            const setInputs = setsContainer.querySelectorAll('.set-input-group');
+            const setsData = [];
+
+            setInputs.forEach((setGroup, index) => {
+                const weight = setGroup.querySelector('.weight-input').value;
+                const reps = setGroup.querySelector('.reps-input').value;
+                if (weight || reps) {
+                    setsData.push({
+                        setNumber: index + 1,
+                        weight: parseFloat(weight) || null,
+                        reps: parseInt(reps) || null,
+                    });
                 }
+            });
+
+            if (setsData.length > 0) {
+                allTrackingData[exerciseId] = { sets: setsData };
             }
-        }
-        
-        if (savedCount > 0) {
-            showSuccess(`Successfully saved ${savedCount} out of ${totalCount} exercises!`);
-        } else {
-            showError('No exercises were saved. Please enter some data first.');
-        }
+        });
+
+        // Save updated data to localStorage
+        localStorage.setItem(`exercise_tracking_${dateString}`, JSON.stringify(allTrackingData));
+
+        showSuccess('All progress saved successfully!');
+        goBack(); // Navigate back to the calendar or previous page
         
     } catch (error) {
-        handleError('Failed to save all progress', error);
+        console.error('Error saving all progress:', error);
+        showError('Failed to save all progress.');
     }
 }
 
-// Close modal when clicking outside
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.remove();
-    }
-} 
-
-// Workout Program Management Functions
-
+// Modal to create a new workout program
 function showCreateProgramModal() {
     const modal = document.createElement('div');
     modal.className = 'modal';
@@ -3645,78 +3282,194 @@ function showCreateProgramModal() {
             <h2>Create New Workout Program</h2>
             <form id="createProgramForm" onsubmit="createWorkoutProgram(event)">
                 <div class="form-group">
-                    <label for="programName">Program Name:</label>
-                    <input type="text" id="programName" required placeholder="e.g., Beginner Full Body">
+                    <label for="programName">Program Name</label>
+                    <input type="text" id="programName" required>
                 </div>
                 <div class="form-group">
-                    <label for="programDifficulty">Difficulty Level:</label>
-                    <select id="programDifficulty" required>
-                        <option value="">Select Difficulty</option>
-                        <option value="Beginner">Beginner</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Advanced">Advanced</option>
+                    <label for="programDescription">Description</label>
+                    <textarea id="programDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="programDifficulty">Difficulty</label>
+                    <select id="programDifficulty">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="programDuration">Duration (weeks):</label>
-                    <input type="number" id="programDuration" required min="1" max="52" placeholder="4">
-                </div>
-                <div class="form-group">
-                    <label for="programDescription">Description:</label>
-                    <textarea id="programDescription" rows="4" placeholder="Describe the workout program..."></textarea>
+                    <label for="programDuration">Duration (weeks)</label>
+                    <input type="number" id="programDuration" min="1">
                 </div>
                 <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal(this.closest('.modal'))">Cancel</button>
                     <button type="submit" class="btn btn-primary">Create Program</button>
                 </div>
             </form>
         </div>
     `;
-    
     document.body.appendChild(modal);
     modal.style.display = 'block';
 }
 
+// Create a new workout program and save to localStorage
 function createWorkoutProgram(event) {
     event.preventDefault();
     
-    const name = document.getElementById('programName').value.trim();
-    const difficulty = document.getElementById('programDifficulty').value;
-    const duration = parseInt(document.getElementById('programDuration').value);
-    const description = document.getElementById('programDescription').value.trim();
+    const newProgram = {
+        id: `user_${Date.now()}`,
+        name: document.getElementById('programName').value,
+        description: document.getElementById('programDescription').value,
+        difficulty_level: document.getElementById('programDifficulty').value,
+        duration_weeks: document.getElementById('programDuration').value,
+        is_user_created: true,
+    };
     
-    if (!name || !difficulty || !duration) {
-        showError('Please fill in all required fields');
+    // Validate the program data
+    const validation = validateData(newProgram, schemas.workoutProgram);
+    if (!validation.isValid) {
+        showError(`Invalid program data: ${validation.errors.join(', ')}`);
         return;
     }
     
-    // Create new program object
-    const newProgram = {
-        id: Date.now(), // Simple ID generation for demo
-        name: name,
-        difficulty_level: difficulty,
-        duration_weeks: duration,
-        description: description,
-        created_at: new Date().toISOString()
-    };
-    
-    // Add to workout programs array
+    // Add to workout programs array and save to localStorage
     workoutPrograms.push(newProgram);
+    const userPrograms = workoutPrograms.filter(p => p.is_user_created);
+    localStorage.setItem('workoutPrograms', JSON.stringify(userPrograms));
     
-    // Save to localStorage (in a real app, this would go to the database)
-    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
-    
-    // Close modal and refresh display
-    closeModal(document.querySelector('.modal'));
-    displayWorkoutPrograms(workoutPrograms);
-    
-    showSuccess(`Workout program "${name}" created successfully!`);
+    showSuccess('Workout program created successfully!');
+    closeModal(document.getElementById('createProgramForm').closest('.modal'));
+    loadWorkoutPrograms(); // Refresh the list
 }
 
+// Show modal to edit an existing workout program
 function editWorkoutProgram(programId) {
     const program = workoutPrograms.find(p => p.id === programId);
+    if (!program) return;
+
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content program-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Edit Workout Program</h2>
+            <form id="editProgramForm" onsubmit="updateWorkoutProgram(event, '${programId}')">
+                <div class="form-group">
+                    <label for="editProgramName">Program Name</label>
+                    <input type="text" id="editProgramName" value="${program.name}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editProgramDescription">Description</label>
+                    <textarea id="editProgramDescription">${program.description || ''}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editProgramDifficulty">Difficulty</label>
+                    <select id="editProgramDifficulty">
+                        <option value="beginner" ${program.difficulty_level === 'beginner' ? 'selected' : ''}>Beginner</option>
+                        <option value="intermediate" ${program.difficulty_level === 'intermediate' ? 'selected' : ''}>Intermediate</option>
+                        <option value="advanced" ${program.difficulty_level === 'advanced' ? 'selected' : ''}>Advanced</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editProgramDuration">Duration (weeks)</label>
+                    <input type="number" id="editProgramDuration" value="${program.duration_weeks || ''}" min="1">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal(this.closest('.modal'))">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
+}
+
+// Update an existing workout program
+function updateWorkoutProgram(event, programId) {
+    event.preventDefault();
+
+    const programIndex = workoutPrograms.findIndex(p => p.id === programId);
+    if (programIndex === -1) return;
+
+    const updatedProgram = {
+        ...workoutPrograms[programIndex],
+        name: document.getElementById('editProgramName').value,
+        description: document.getElementById('editProgramDescription').value,
+        difficulty_level: document.getElementById('editProgramDifficulty').value,
+        duration_weeks: document.getElementById('editProgramDuration').value,
+    };
+    
+    // Replace the old program with the updated one
+    workoutPrograms[programIndex] = updatedProgram;
+    
+    // Save only user-created programs back to localStorage
+    const userPrograms = workoutPrograms.filter(p => p.is_user_created);
+    localStorage.setItem('workoutPrograms', JSON.stringify(userPrograms));
+
+    showSuccess('Workout program updated successfully!');
+    closeModal(document.getElementById('editProgramForm').closest('.modal'));
+    loadWorkoutPrograms(); // Refresh the list
+}
+
+// Delete a workout program
+function deleteWorkoutProgram(programId, programName) {
+    // Show a confirmation dialog before deleting
+    const confirmation = confirm(`Are you sure you want to delete the program "${programName}"? This action cannot be undone.`);
+    
+    if (confirmation) {
+        confirmDeleteProgram(programId, programName);
+    }
+}
+
+// Confirmed deletion of workout program
+function confirmDeleteProgram(programId, programName) {
+    const programIndex = workoutPrograms.findIndex(p => p.id == programId);
+    
+    if (programIndex > -1) {
+        const program = workoutPrograms[programIndex];
+        
+        // If it's a user-created program, remove it from localStorage
+        if (program.is_user_created) {
+            workoutPrograms.splice(programIndex, 1);
+            const userPrograms = workoutPrograms.filter(p => p.is_user_created);
+            localStorage.setItem('workoutPrograms', JSON.stringify(userPrograms));
+        } else {
+            // If it's a database program, add its ID to the deleted list
+            let deletedPrograms = localStorage.getItem('deletedPrograms');
+            let deletedProgramIds = deletedPrograms ? JSON.parse(deletedPrograms) : [];
+            
+            if (!deletedProgramIds.includes(programId)) {
+                deletedProgramIds.push(programId);
+                localStorage.setItem('deletedPrograms', JSON.stringify(deletedProgramIds));
+            }
+        }
+        
+        // Remove scheduled instances of this program
+        const updatedScheduledWorkouts = {};
+        for (const [date, scheduledProgram] of Object.entries(scheduledWorkouts)) {
+            if (scheduledProgram.id !== programId) {
+                updatedScheduledWorkouts[date] = scheduledProgram;
+            }
+        }
+        
+        // Update the scheduled workouts in memory and localStorage
+        scheduledWorkouts = updatedScheduledWorkouts;
+        localStorage.setItem('scheduledWorkouts', JSON.stringify(scheduledWorkouts));
+        
+        showSuccess(`Program "${programName}" has been deleted.`);
+        loadWorkoutPrograms(); // Refresh the list of programs
+        
+    } else {
+        showError('Could not find the program to delete.');
+    }
+}
+
+// Show modal to add an exercise to a workout program
+function showAddExerciseModal(programId) {
+    const program = workoutPrograms.find(p => p.id == programId);
     if (!program) {
-        showError('Program not found');
+        showError('Program not found.');
         return;
     }
     
@@ -3725,395 +3478,139 @@ function editWorkoutProgram(programId) {
     modal.innerHTML = `
         <div class="modal-content program-modal">
             <span class="close" onclick="closeModal(this)">&times;</span>
-            <h2>Edit Workout Program</h2>
-            <form id="editProgramForm" onsubmit="updateWorkoutProgram(event, ${programId})">
-                <div class="form-group">
-                    <label for="editProgramName">Program Name:</label>
-                    <input type="text" id="editProgramName" required value="${program.name}">
-                </div>
-                <div class="form-group">
-                    <label for="editProgramDifficulty">Difficulty Level:</label>
-                    <select id="editProgramDifficulty" required>
-                        <option value="Beginner" ${program.difficulty_level === 'Beginner' ? 'selected' : ''}>Beginner</option>
-                        <option value="Intermediate" ${program.difficulty_level === 'Intermediate' ? 'selected' : ''}>Intermediate</option>
-                        <option value="Advanced" ${program.difficulty_level === 'Advanced' ? 'selected' : ''}>Advanced</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="editProgramDuration">Duration (weeks):</label>
-                    <input type="number" id="editProgramDuration" required min="1" max="52" value="${program.duration_weeks}">
-                </div>
-                <div class="form-group">
-                    <label for="editProgramDescription">Description:</label>
-                    <textarea id="editProgramDescription" rows="4">${program.description || ''}</textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Program</button>
-                </div>
-            </form>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
-}
-
-function updateWorkoutProgram(event, programId) {
-    event.preventDefault();
-    
-    const name = document.getElementById('editProgramName').value.trim();
-    const difficulty = document.getElementById('editProgramDifficulty').value;
-    const duration = parseInt(document.getElementById('editProgramDuration').value);
-    const description = document.getElementById('editProgramDescription').value.trim();
-    
-    if (!name || !difficulty || !duration) {
-        showError('Please fill in all required fields');
-        return;
-    }
-    
-    // Find and update the program
-    const programIndex = workoutPrograms.findIndex(p => p.id === programId);
-    if (programIndex === -1) {
-        showError('Program not found');
-        return;
-    }
-    
-    workoutPrograms[programIndex] = {
-        ...workoutPrograms[programIndex],
-        name: name,
-        difficulty_level: difficulty,
-        duration_weeks: duration,
-        description: description,
-        updated_at: new Date().toISOString()
-    };
-    
-    // Save to localStorage
-    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
-    
-    // Close modal and refresh display
-    closeModal(document.querySelector('.modal'));
-    displayWorkoutPrograms(workoutPrograms);
-    
-    showSuccess(`Workout program "${name}" updated successfully!`);
-}
-
-function deleteWorkoutProgram(programId, programName) {
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content delete-modal">
-            <span class="close" onclick="closeModal(this)">&times;</span>
-            <h2>Delete Workout Program</h2>
-            <p>Are you sure you want to delete "<strong>${programName}</strong>"?</p>
-            <p class="warning">This action cannot be undone.</p>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
-                <button type="button" class="btn btn-danger" onclick="confirmDeleteProgram(${programId}, '${programName}')">Delete Program</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
-}
-
-function confirmDeleteProgram(programId, programName) {
-    try {
-        // Check if this is a database program (has a numeric ID) or localStorage program
-        const isDatabaseProgram = typeof programId === 'number' || (typeof programId === 'string' && !isNaN(programId) && programId < 1000000);
-        
-        if (isDatabaseProgram) {
-            // This is a database program - add to deleted list
-            const deletedPrograms = localStorage.getItem('deletedPrograms');
-            let deletedProgramIds = [];
-            
-            if (deletedPrograms) {
-                try {
-                    deletedProgramIds = JSON.parse(deletedPrograms);
-                } catch (e) {
-                    console.error('Error parsing deleted programs:', e);
-                }
-            }
-            
-            // Add to deleted list if not already there
-            if (!deletedProgramIds.includes(programId)) {
-                deletedProgramIds.push(programId);
-                localStorage.setItem('deletedPrograms', JSON.stringify(deletedProgramIds));
-            }
-            
-            console.log('Database program deleted, added to deleted list:', programId);
-        } else {
-            // This is a localStorage program - remove from localStorage
-            const userPrograms = localStorage.getItem('workoutPrograms');
-            if (userPrograms) {
-                try {
-                    let localStoragePrograms = JSON.parse(userPrograms);
-                    localStoragePrograms = localStoragePrograms.filter(p => p.id !== programId);
-                    localStorage.setItem('workoutPrograms', JSON.stringify(localStoragePrograms));
-                } catch (e) {
-                    console.error('Error updating localStorage programs:', e);
-                }
-            }
-            
-            console.log('localStorage program deleted:', programId);
-        }
-        
-        // Remove from current display
-        workoutPrograms = workoutPrograms.filter(p => p.id !== programId);
-        
-        // Close modal and refresh display
-        closeModal(document.querySelector('.modal'));
-        displayWorkoutPrograms(workoutPrograms);
-        
-        showSuccess(`Workout program "${programName}" deleted successfully!`);
-        
-    } catch (error) {
-        console.error('Error deleting program:', error);
-        showError('Failed to delete program');
-    }
-}
-
-// Exercise Management for Workout Programs
-
-function showAddExerciseModal(programId) {
-    const program = workoutPrograms.find(p => p.id === programId);
-    if (!program) {
-        showError('Program not found');
-        return;
-    }
-    
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content exercise-modal">
-            <span class="close" onclick="closeModal(this)">&times;</span>
             <h2>Add Exercise to "${program.name}"</h2>
             
-            <div class="exercise-search-section">
-                <div class="form-group">
-                    <label for="exerciseSearch">Search Exercises:</label>
-                    <input type="text" id="exerciseSearch" placeholder="Type to search exercises..." oninput="filterExerciseList()">
+            <div class="add-exercise-content">
+                <div class="exercise-search-container">
+                    <input type="text" id="exerciseSearchInput" class="search-input" placeholder="Search exercises..." onkeyup="filterExerciseList()">
                 </div>
                 
-                <div class="form-group">
-                    <label for="muscleGroupFilter">Filter by Muscle Group:</label>
-                    <select id="muscleGroupFilter" onchange="filterExerciseList()">
-                        <option value="">All Muscle Groups</option>
-                        ${muscleGroups.map(group => `<option value="${group.id}">${group.name}</option>`).join('')}
-                    </select>
-                </div>
-            </div>
-            
-            <div class="exercise-list-container">
-                <div id="exerciseList" class="exercise-list">
-                    ${exercises.map(exercise => `
-                        <div class="exercise-item" data-exercise-id="${exercise.id}" data-muscle-group="${exercise.muscle_group_id}">
-                            <div class="exercise-info">
-                                <h4>${exercise.name}</h4>
-                                <p><strong>Muscle Group:</strong> ${exercise.muscle_group_name}</p>
-                                <p><strong>Difficulty:</strong> ${exercise.difficulty_level || 'Not specified'}</p>
-                                <p><strong>Equipment:</strong> ${exercise.equipment || 'None required'}</p>
-                            </div>
-                            <div class="exercise-config">
-                                <div class="form-group">
-                                    <label>Sets:</label>
-                                    <input type="number" class="exercise-sets" min="1" max="10" value="3" placeholder="3">
-                                </div>
-                                <div class="form-group">
-                                    <label>Reps:</label>
-                                    <input type="number" class="exercise-reps" min="1" max="100" value="10" placeholder="10">
-                                </div>
-                                <button class="btn btn-primary" onclick="addExerciseToProgram(${programId}, ${exercise.id}, this)">
-                                    Add to Program
-                                </button>
-                            </div>
-                        </div>
-                    `).join('')}
+                <div id="exerciseSelectionList" class="exercise-selection-list">
+                    <!-- Exercises will be loaded here -->
                 </div>
             </div>
             
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeModal(this)">Close</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal(this.closest('.modal'))">Done</button>
             </div>
         </div>
     `;
     
     document.body.appendChild(modal);
     modal.style.display = 'block';
+    
+    // Load all exercises into the selection list
+    const selectionList = document.getElementById('exerciseSelectionList');
+    selectionList.innerHTML = exercises.map(exercise => `
+        <div class="exercise-selection-item" data-exercise-id="${exercise.id}">
+            <div class="exercise-info">
+                <h4>${exercise.name}</h4>
+                <p>${exercise.muscle_group_name} | ${exercise.difficulty_level}</p>
+            </div>
+            <button class="btn btn-primary add-exercise-btn" onclick="addExerciseToProgram('${programId}', ${exercise.id}, this)">Add</button>
+        </div>
+    `).join('');
 }
 
+// Filter the exercise list in the "Add Exercise" modal
 function filterExerciseList() {
-    const searchTerm = document.getElementById('exerciseSearch').value.toLowerCase();
-    const muscleGroupFilter = document.getElementById('muscleGroupFilter').value;
-    const exerciseItems = document.querySelectorAll('.exercise-item');
+    const searchTerm = document.getElementById('exerciseSearchInput').value.toLowerCase();
+    const items = document.querySelectorAll('.exercise-selection-item');
     
-    exerciseItems.forEach(item => {
-        const exerciseName = item.querySelector('h4').textContent.toLowerCase();
-        const muscleGroup = item.getAttribute('data-muscle-group');
-        const matchesSearch = exerciseName.includes(searchTerm);
-        const matchesMuscleGroup = !muscleGroupFilter || muscleGroup === muscleGroupFilter;
+    items.forEach(item => {
+        const name = item.querySelector('h4').textContent.toLowerCase();
+        const info = item.querySelector('p').textContent.toLowerCase();
         
-        if (matchesSearch && matchesMuscleGroup) {
-            item.style.display = 'block';
+        if (name.includes(searchTerm) || info.includes(searchTerm)) {
+            item.style.display = 'flex';
         } else {
             item.style.display = 'none';
         }
     });
 }
 
+// Add a selected exercise to a workout program
 function addExerciseToProgram(programId, exerciseId, button) {
-    const exerciseItem = button.closest('.exercise-item');
-    const setsInput = exerciseItem.querySelector('.exercise-sets');
-    const repsInput = exerciseItem.querySelector('.exercise-reps');
-    
-    const sets = parseInt(setsInput.value) || 3;
-    const reps = parseInt(repsInput.value) || 10;
-    
-    const exercise = exercises.find(e => e.id === exerciseId);
-    const program = workoutPrograms.find(p => p.id === programId);
-    
-    if (!exercise || !program) {
-        showError('Exercise or program not found');
+    const program = workoutPrograms.find(p => p.id == programId);
+    const exercise = exercises.find(e => e.id == exerciseId);
+
+    if (!program || !exercise) {
+        showError('Program or exercise not found.');
         return;
     }
-    
-    // Initialize program exercises if not exists
-    if (!program.exercises) {
-        program.exercises = [];
+
+    // Prompt for sets and reps
+    const sets = prompt(`How many sets of ${exercise.name}?`, 3);
+    const reps = prompt(`How many reps per set?`, 10);
+
+    if (sets && reps) {
+        const programExercise = {
+            id: exerciseId,
+            name: exercise.name,
+            sets: parseInt(sets),
+            reps: parseInt(reps),
+            muscleGroup: exercise.muscle_group_name
+        };
+
+        // Get existing exercises for the program
+        let programExercises = getProgramExercises(programId);
+        
+        // Add new exercise
+        programExercises.push(programExercise);
+
+        // Save updated exercises to localStorage
+        localStorage.setItem(`program_${programId}_exercises`, JSON.stringify(programExercises));
+        
+        // Update button text and disable it
+        button.textContent = 'Added';
+        button.disabled = true;
+        button.style.backgroundColor = '#2a2a2a';
+        
+        showSuccess(`${exercise.name} added to ${program.name}.`);
     }
-    
-    // Check if exercise already exists in program
-    const existingExercise = program.exercises.find(e => e.exercise_id === exerciseId);
-    if (existingExercise) {
-        showError('Exercise already exists in this program');
-        return;
-    }
-    
-    // Add exercise to program
-    const programExercise = {
-        exercise_id: exerciseId,
-        exercise_name: exercise.name,
-        muscle_group: exercise.muscle_group_name,
-        sets: sets,
-        reps: reps,
-        added_at: new Date().toISOString()
-    };
-    
-    program.exercises.push(programExercise);
-    
-    // Save to localStorage
-    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
-    
-    // Update button to show added
-    button.textContent = 'Added ✓';
-    button.classList.add('added');
-    button.disabled = true;
-    
-    showSuccess(`"${exercise.name}" added to "${program.name}"!`);
-    
-    // Reset button after 2 seconds
-    setTimeout(() => {
-        button.textContent = 'Add to Program';
-        button.classList.remove('added');
-        button.disabled = false;
-    }, 2000);
 }
 
-// Function to remove exercise from program
+// Remove an exercise from a workout program
 function removeExerciseFromProgram(programId, exerciseId) {
-    const program = workoutPrograms.find(p => p.id === programId);
+    const confirmation = confirm('Are you sure you want to remove this exercise from the program?');
+    if (!confirmation) return;
+
+    let programExercises = getProgramExercises(programId);
     
-    if (!program) {
-        showError('Program not found');
-        return;
-    }
+    // Filter out the exercise to be removed
+    const updatedExercises = programExercises.filter(ex => ex.id !== exerciseId);
+
+    // Save the updated list back to localStorage
+    localStorage.setItem(`program_${programId}_exercises`, JSON.stringify(updatedExercises));
     
-    if (!program.exercises) {
-        showError('No exercises found in this program');
-        return;
-    }
+    showSuccess('Exercise removed from the program.');
     
-    // Find and remove the exercise
-    const exerciseIndex = program.exercises.findIndex(e => e.exercise_id === exerciseId);
-    if (exerciseIndex === -1) {
-        showError('Exercise not found in this program');
-        return;
-    }
-    
-    const removedExercise = program.exercises[exerciseIndex];
-    program.exercises.splice(exerciseIndex, 1);
-    
-    // Save to localStorage
-    localStorage.setItem('workoutPrograms', JSON.stringify(workoutPrograms));
-    
-    showSuccess(`"${removedExercise.exercise_name}" removed from "${program.name}"!`);
-    
-    // Refresh the program details page if we're on it
-    const currentPage = document.querySelector('.page-content');
-    if (currentPage && currentPage.querySelector('.page-title') && 
-        currentPage.querySelector('.page-title').textContent === program.name) {
-        loadProgramExercisesForPage(programId);
-    }
+    // Refresh the details page to show the change
+    loadWorkoutProgramDetailsPage(document.querySelector('.main-content'), { programId });
 }
 
-// Update getProgramExercises to use program exercises if available
+// Function to get exercises for a given program
 function getProgramExercises(programNameOrId) {
-    // First check if we have a program with exercises by ID
-    let program = null;
-    
-    // Try to find by ID first (if it's a number or looks like an ID)
-    if (typeof programNameOrId === 'number' || (typeof programNameOrId === 'string' && !isNaN(programNameOrId))) {
-        program = workoutPrograms.find(p => p.id == programNameOrId);
-    }
-    
-    // If not found by ID, try by name
-    if (!program) {
-        program = workoutPrograms.find(p => p.name === programNameOrId);
-    }
-    
-    if (program && program.exercises && program.exercises.length > 0) {
-        return program.exercises.map(ex => ({
-            id: ex.exercise_id,
-            name: ex.exercise_name,
-            sets: ex.sets,
-            reps: ex.reps,
-            muscleGroup: ex.muscle_group
-        }));
-    }
-    
-    // Fallback to mock exercises based on program name
-    const programName = program ? program.name : programNameOrId;
-    switch(programName) {
-        case 'Cardio & Strength Mix':
-            return [
-                { id: 1, name: 'Burpees', sets: 3, reps: 15 },
-                { id: 2, name: 'Push-ups', sets: 3, reps: 12 },
-                { id: 3, name: 'Squats', sets: 3, reps: 20 },
-                { id: 4, name: 'Mountain Climbers', sets: 3, reps: 30 },
-                { id: 5, name: 'Plank', sets: 3, reps: 45 }
-            ];
-        case 'Beginner Full Body':
-            return [
-                { id: 6, name: 'Wall Push-ups', sets: 3, reps: 10 },
-                { id: 7, name: 'Assisted Squats', sets: 3, reps: 15 },
-                { id: 8, name: 'Knee Plank', sets: 3, reps: 30 },
-                { id: 9, name: 'Marching in Place', sets: 3, reps: 60 }
-            ];
-        case 'Advanced Power':
-            return [
-                { id: 10, name: 'Power Clean', sets: 5, reps: 3 },
-                { id: 11, name: 'Snatch', sets: 4, reps: 2 },
-                { id: 12, name: 'Box Jumps', sets: 4, reps: 8 },
-                { id: 13, name: 'Push Press', sets: 4, reps: 5 },
-                { id: 14, name: 'Kettlebell Swings', sets: 3, reps: 15 }
-            ];
-        default:
-            return [
-                { id: 15, name: 'Push-ups', sets: 3, reps: 10 },
-                { id: 16, name: 'Squats', sets: 3, reps: 15 },
-                { id: 17, name: 'Plank', sets: 3, reps: 30 }
-            ];
-    }
-}
+    const programId = typeof programNameOrId === 'string' ? 
+                      workoutPrograms.find(p => p.name === programNameOrId)?.id :
+                      programNameOrId;
 
+    if (!programId) {
+        console.warn(`Program not found: ${programNameOrId}`);
+        return [];
+    }
+    
+    // Retrieve from localStorage
+    const storedExercises = localStorage.getItem(`program_${programId}_exercises`);
+    
+    if (storedExercises) {
+        try {
+            return JSON.parse(storedExercises);
+        } catch (e) {
+            console.error('Error parsing stored exercises:', e);
+            return [];
+        }
+    }
+    
+    return [];
+}

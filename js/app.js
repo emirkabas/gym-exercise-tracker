@@ -2022,6 +2022,10 @@ function showCreateExerciseModal() {
                     <textarea id="exerciseDescription"></textarea>
                 </div>
                 <div class="form-group">
+                    <label for="videoUrl">Video URL</label>
+                    <input type="url" id="videoUrl">
+                </div>
+                <div class="form-group">
                     <label for="muscleGroup">Muscle Group</label>
                     <select id="muscleGroup" required>
                         ${muscleGroupOptions}
@@ -2052,12 +2056,13 @@ async function addExercise(event) {
 
     const name = document.getElementById('exerciseName').value;
     const description = document.getElementById('exerciseDescription').value;
+    const video_url = document.getElementById('videoUrl').value;
     const muscle_group_id = document.getElementById('muscleGroup').value;
     const difficulty_level = document.getElementById('difficulty').value;
 
     const { data, error } = await supabase
         .from('exercises')
-        .insert([{ name, description, muscle_group_id, difficulty_level }]);
+        .insert([{ name, description, video_url, muscle_group_id, difficulty_level }]);
 
     if (error) {
         console.error('Error adding exercise:', error);

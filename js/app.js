@@ -332,6 +332,11 @@ function setupDeleteAllProgramsButton() {
                     const result = await response.json();
                     showSuccess(result.message);
                     
+                    // Clear relevant localStorage items
+                    localStorage.removeItem('workoutPrograms');
+                    localStorage.removeItem('deletedPrograms');
+                    localStorage.removeItem('scheduledWorkouts');
+
                     // Clear cache and reload data
                     clearCache();
                     await loadInitialData();
@@ -474,7 +479,10 @@ function loadExercisesPage(container) {
     container.innerHTML = `
             <div class="page-header">
             <h1>Exercises</h1>
-            <p>Browse and search exercises by muscle group</p>
+            <div>
+                <p>Browse and search exercises by muscle group</p>
+                <button id="delete-all-exercises" class="btn btn-danger">Delete All Exercises</button>
+            </div>
             </div>
             
         <div class="content-layout">
@@ -614,9 +622,12 @@ function loadWorkoutProgramsPage(container) {
     container.innerHTML = `
             <div class="page-header">
             <h1>Workout Programs</h1>
-            <button class="btn btn-primary" onclick="showCreateProgramModal()">
-                <span>+ Create New Program</span>
+            <div>
+                <button class="btn btn-primary" onclick="showCreateProgramModal()">
+                    <span>+ Create New Program</span>
                 </button>
+                <button id="delete-all-programs" class="btn btn-danger">Delete All Programs</button>
+            </div>
             </div>
             
         <div class="content-layout">

@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon --ignore 'public/*' --ignore 'uploads/*' server.js",
-    "dev:clean": "pkill -f 'node server.js' && nodemon --ignore 'public/*' --ignore 'uploads/*' server.js",
+    "dev": "nodemon --ignore 'public/*' --ignore 'uploads/*' local-server.js",
+    "dev:clean": "pkill -f 'node local-server.js' && nodemon --ignore 'public/*' --ignore 'uploads/*' local-server.js",
     "init-db": "node scripts/init-database.js"
   },
   "dependencies": {

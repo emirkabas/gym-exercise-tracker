@@ -2590,8 +2590,8 @@ function getProgramExercises(programNameOrId) {
 // Function to setup autofill for weight inputs
 function setupWeightAutoFill() {
     const weightInputs = document.querySelectorAll('.weight-input');
-    
-    weightInputs.forEach(input => {
+            
+                weightInputs.forEach(input => {
         input.addEventListener('blur', (event) => {
             const currentInput = event.target;
             const exerciseId = currentInput.getAttribute('data-exercise-id');
@@ -2725,7 +2725,7 @@ function clearDeletedPrograms() {
 
 // Manual save function to test saving data structure
 function manualSave() {
-    const testData = {
+        const testData = {
         '123': {
             exerciseName: 'Test Exercise',
             sets: [
@@ -2767,8 +2767,8 @@ function checkLocalStorage() {
 
 // Function to check modal structure
 function checkModalStructure() {
-    const modal = document.querySelector('.modal');
-    if (!modal) {
+        const modal = document.querySelector('.modal');
+        if (!modal) {
         console.error('Modal not found!');
         return;
     }
@@ -2815,7 +2815,7 @@ function testModalSave() {
 }
 
 function testSaveStep(step) {
-    const modal = document.querySelector('.modal');
+                const modal = document.querySelector('.modal');
     if (!modal) {
         console.error('No modal is open.');
         return;
@@ -2965,7 +2965,7 @@ function showError(message) {
     if (errorBanner) {
         errorBanner.textContent = message;
         errorBanner.style.display = 'block';
-        setTimeout(() => {
+    setTimeout(() => {
             errorBanner.style.display = 'none';
         }, 5000);
     } else {
@@ -2999,7 +2999,7 @@ function toggleEditMode(exerciseId) {
     } else {
         // Switch to edit mode
         fields.forEach(field => {
-            const currentValue = field.textContent;
+        const currentValue = field.textContent;
             field.setAttribute('data-original-value', currentValue);
             const fieldName = field.getAttribute('data-field');
             if (fieldName === 'muscle_group_name') {
@@ -3012,7 +3012,7 @@ function toggleEditMode(exerciseId) {
                 select.innerHTML = ['beginner', 'intermediate', 'advanced'].map(d => `<option value="${d}" ${d === currentValue ? 'selected' : ''}>${d}</option>`).join('');
                 field.innerHTML = '';
                 field.appendChild(select);
-            } else {
+        } else {
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.value = currentValue;
@@ -3059,24 +3059,24 @@ async function saveExerciseChanges(exerciseId) {
                 const muscleGroupId = await getMuscleGroupIdByName(value);
                 if (muscleGroupId) {
                     updatedData['muscle_group_id'] = muscleGroupId;
-                } else {
+            } else {
                     showError(`Invalid muscle group: ${value}`);
                     return;
-                }
+            }
             } else {
                 updatedData[fieldName] = value;
-            }
+        }
         }
     }
-
+    
     if (Object.keys(updatedData).length > 0) {
         const { error } = await supabase
             .from('exercises')
             .update(updatedData)
             .eq('id', exerciseId);
-
+        
         if (error) {
-            console.error('Error updating exercise:', error);
+        console.error('Error updating exercise:', error);
             showError('Failed to update exercise.');
         } else {
             showSuccess('Exercise updated successfully!');
@@ -3090,7 +3090,7 @@ function showSuccess(message) {
     if (successBanner) {
         successBanner.textContent = message;
         successBanner.style.display = 'block';
-        setTimeout(() => {
+    setTimeout(() => {
             successBanner.style.display = 'none';
         }, 3000);
     } else {
@@ -3102,7 +3102,7 @@ function showSuccess(message) {
         banner.style.display = 'block';
         setTimeout(() => {
             banner.style.display = 'none';
-        }, 3000);
+    }, 3000);
     }
 }
 
@@ -3113,30 +3113,30 @@ function showExerciseTracking(exerciseId, sets, reps, dateString, programId) {
         showError('Exercise not found.');
         return;
     }
-
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content exercise-tracking-modal">
-            <span class="close" onclick="closeModal(this)">&times;</span>
+    
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content exercise-tracking-modal">
+                <span class="close" onclick="closeModal(this)">&times;</span>
             <h2>Track: ${exercise.name}</h2>
-            <p><strong>Date:</strong> ${formatDate(dateString)}</p>
+                <p><strong>Date:</strong> ${formatDate(dateString)}</p>
             <p><strong>Target:</strong> ${sets} sets of ${reps} reps</p>
             
             <div id="tracking-sets-container">
                 <!-- Set inputs will be generated here -->
-            </div>
-            
+                    </div>
+                    
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeModal(this)">Cancel</button>
                 <button class="btn btn-primary" onclick="saveExerciseTracking(${exerciseId}, '${dateString}', '${programId}')">Save Progress</button>
+                </div>
             </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-    modal.style.display = 'block';
-
+        `;
+        
+        document.body.appendChild(modal);
+        modal.style.display = 'block';
+        
     // Load existing data and generate set inputs
     loadExerciseTrackingData(exerciseId, dateString).then(trackingData => {
         const setsContainer = document.getElementById('tracking-sets-container');
@@ -3213,7 +3213,7 @@ async function saveExerciseTracking(exerciseId, dateString, programId) {
         showSuccess('Progress saved successfully!');
         closeModal(modal);
 
-    } catch (error) {
+        } catch (error) {
         console.error('Failed to save exercise tracking:', error);
         showError('Could not save progress. Please try again.');
     }
@@ -3346,7 +3346,7 @@ function createWorkoutProgram(event) {
 function editWorkoutProgram(programId) {
     const program = workoutPrograms.find(p => p.id === programId);
     if (!program) return;
-
+    
     const modal = document.createElement('div');
     modal.className = 'modal';
     modal.innerHTML = `
@@ -3388,10 +3388,10 @@ function editWorkoutProgram(programId) {
 // Update an existing workout program
 function updateWorkoutProgram(event, programId) {
     event.preventDefault();
-
+    
     const programIndex = workoutPrograms.findIndex(p => p.id === programId);
     if (programIndex === -1) return;
-
+    
     const updatedProgram = {
         ...workoutPrograms[programIndex],
         name: document.getElementById('editProgramName').value,
@@ -3530,7 +3530,7 @@ function filterExerciseList() {
 }
 
 // Add a selected exercise to a workout program
-function addExerciseToProgram(programId, exerciseId, button) {
+function showAddExerciseToProgramModal(programId, exerciseId, button) {
     const program = workoutPrograms.find(p => p.id == programId);
     const exercise = exercises.find(e => e.id == exerciseId);
 
@@ -3538,36 +3538,64 @@ function addExerciseToProgram(programId, exerciseId, button) {
         showError('Program or exercise not found.');
         return;
     }
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content program-modal">
+            <span class="close" onclick="closeModal(this)">&times;</span>
+            <h2>Add ${exercise.name} to ${program.name}</h2>
+            <form id="addExerciseToProgramForm">
+                <div class="form-group">
+                    <label for="sets">Sets</label>
+                    <input type="number" id="sets" value="3" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="reps">Reps</label>
+                    <input type="number" id="reps" value="10" min="1" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal(this.closest('.modal'))">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Exercise</button>
+                </div>
+            </form>
+        </div>
+    `;
 
-    // Prompt for sets and reps
-    const sets = prompt(`How many sets of ${exercise.name}?`, 3);
-    const reps = prompt(`How many reps per set?`, 10);
+    document.body.appendChild(modal);
+    modal.style.display = 'block';
 
-    if (sets && reps) {
-        const programExercise = {
-            id: exerciseId,
-            name: exercise.name,
-            sets: parseInt(sets),
-            reps: parseInt(reps),
-            muscleGroup: exercise.muscle_group_name
-        };
+    const form = modal.querySelector('#addExerciseToProgramForm');
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const sets = document.getElementById('sets').value;
+        const reps = document.getElementById('reps').value;
 
-        // Get existing exercises for the program
-        let programExercises = getProgramExercises(programId);
-        
-        // Add new exercise
-        programExercises.push(programExercise);
+        if (sets && reps) {
+    const programExercise = {
+                id: exerciseId,
+                name: exercise.name,
+                sets: parseInt(sets),
+                reps: parseInt(reps),
+                muscleGroup: exercise.muscle_group_name
+            };
 
-        // Save updated exercises to localStorage
-        localStorage.setItem(`program_${programId}_exercises`, JSON.stringify(programExercises));
-        
-        // Update button text and disable it
-        button.textContent = 'Added';
-        button.disabled = true;
-        button.style.backgroundColor = '#2a2a2a';
-        
-        showSuccess(`${exercise.name} added to ${program.name}.`);
-    }
+            let programExercises = getProgramExercises(programId);
+            programExercises.push(programExercise);
+            localStorage.setItem(`program_${programId}_exercises`, JSON.stringify(programExercises));
+            
+            button.textContent = 'Added';
+    button.disabled = true;
+            button.style.backgroundColor = '#2a2a2a';
+            
+            showSuccess(`${exercise.name} added to ${program.name}.`);
+            closeModal(modal);
+        }
+    });
+}
+
+function addExerciseToProgram(programId, exerciseId, button) {
+    showAddExerciseToProgramModal(programId, exerciseId, button);
 }
 
 // Remove an exercise from a workout program
